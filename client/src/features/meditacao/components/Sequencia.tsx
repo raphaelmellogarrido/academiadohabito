@@ -5,7 +5,7 @@ export function Sequencia({ sequencia }: { sequencia: SequenciaTipo }) {
   return (
     <div className="cartao">
       <div className="cm-sequencia-cabecalho">
-        <span className="cartao-titulo cm-sequencia-titulo">🌱 Sequência</span>
+        <span className="cartao-titulo cm-sequencia-titulo">🏃‍♂️ Sequência</span>
         <span className="cm-sequencia-badge">{sequencia.streak} DIAS SEGUIDOS</span>
       </div>
       <div className="cm-sequencia-bolinhas">

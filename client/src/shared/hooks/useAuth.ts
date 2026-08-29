@@ -32,7 +32,7 @@ export function useAuth() {
   }
 
   // Usado por Configurações (perfil/senha) pra refletir a resposta do server
-  // na Sidebar sem precisar de reload — ver ConfiguracoesPage.tsx.
+  // na TopBar sem precisar de reload — ver ConfiguracoesPage.tsx.
   function atualizarUsuario(patch: Partial<Usuario>) {
     setUsuario((atual) => (atual ? { ...atual, ...patch } : atual));
   }

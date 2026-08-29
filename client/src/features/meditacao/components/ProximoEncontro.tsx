@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
+import { Calendar, Check, Clock } from "lucide-react";
 import { meditacaoApi, type Encontro } from "../api/meditacaoApi";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function iniciais(nome: string) {
-  return nome.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return nome
+    .split(" ")
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
 }
 
 function formatarData(inicio: Date, fim: Date) {
@@ -40,23 +45,30 @@ export function ProximoEncontro() {
 
   return (
     <div className="cartao cm-encontro">
-      <div className="cm-encontro-cabecalho">
+      <div className="cm-encontro-titulo-linha">
+        <span className="cm-encontro-icone-titulo">
+          <Calendar size={13} />
+        </span>
         <p className="cartao-titulo cm-encontro-titulo">Próximo encontro ao vivo</p>
+      </div>
+
+      <div className="cm-encontro-linha-data">
+        <span className="cm-encontro-data">
+          <Clock size={14} />
+          {formatarData(inicio, fim)}
+        </span>
         <span className={`cm-encontro-badge ${encontro.aoVivo ? "is-ao-vivo" : ""}`}>
+          <span className="cm-encontro-badge-ponto" />
           {encontro.aoVivo ? "AO VIVO" : "EM BREVE"}
         </span>
       </div>
 
-      <strong className="cm-encontro-data">{formatarData(inicio, fim)}</strong>
-
       <div className="cm-encontro-anfitriao">
-        <div className="cm-encontro-foto">
-          {encontro.fotoAnfitriao ? <img src={encontro.fotoAnfitriao} alt="" /> : iniciais(encontro.anfitriao)}
-        </div>
+        <div className="cm-encontro-foto">{encontro.fotoAnfitriao ? <img src={encontro.fotoAnfitriao} alt="" /> : iniciais(encontro.anfitriao)}</div>
         <span>com {encontro.anfitriao}</span>
       </div>
 
-      {encontro.checklist.length > 0 && (
+      {/* {encontro.checklist.length > 0 && (
         <ul className="cm-encontro-checklist">
           {encontro.checklist.map((item) => (
             <li key={item}>
@@ -65,7 +77,7 @@ export function ProximoEncontro() {
             </li>
           ))}
         </ul>
-      )}
+      )} */}
 
       <div className="cm-encontro-reservas">
         <div className="cm-encontro-avatares">
@@ -83,21 +95,14 @@ export function ProximoEncontro() {
           Entrar na live
         </a>
       ) : (
-        <>
-          <button
-            type="button"
-            className={`cm-encontro-btn ${encontro.reservado ? "is-reservado" : ""}`}
-            onClick={alternarReserva}
-            disabled={enviando}
-          >
+        <div className="cm-encontro-acoes">
+          <button type="button" className={`cm-encontro-btn ${encontro.reservado ? "is-reservado" : ""}`} onClick={alternarReserva} disabled={enviando}>
             {encontro.reservado ? "Vaga reservada ✓" : "Reservar vaga"}
           </button>
-          {encontro.reservado && (
-            <button type="button" className="cm-encontro-btn-outline" disabled>
-              Aguardando liberação
-            </button>
-          )}
-        </>
+          <button type="button" className="cm-encontro-btn-outline" disabled>
+            Aguardando liberação
+          </button>
+        </div>
       )}
     </div>
   );

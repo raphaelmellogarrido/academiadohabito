@@ -9,9 +9,8 @@ import { FraseSemana } from "../components/FraseSemana";
 import { Feed } from "../components/Feed";
 import "../meditacao.css";
 
-// Colunas 2-3-4 do grid de 4 (col1 = Sidebar, em app/layouts/AppLayout.tsx).
-// Mesmo desenho de renato_de_paula/Dashboard.jsx: col-feed | col-progresso |
-// col-encontros.
+// Colunas do dashboard renderizadas abaixo da TopBar (ver app/layouts/AppLayout.tsx).
+// Ordem: col-progresso (25%) | col-feed (50%) | col-encontros (25%, com "Meditei hoje" acima do encontro ao vivo).
 export function MeditacaoDashboardPage() {
   const { sequencia, jornada, pulso, carregando, marcando, mediteiHoje, jaMarcouHoje } = useMeditacaoDashboard();
 
@@ -19,18 +18,18 @@ export function MeditacaoDashboardPage() {
 
   return (
     <div className="cm-dashboard">
-      <div className="cm-col-feed">
-        <BotaoMediteiHoje jaMarcouHoje={jaMarcouHoje} marcando={marcando} onClick={mediteiHoje} />
-        <Feed />
-      </div>
-
       <div className="cm-col-progresso">
         {sequencia && <Sequencia sequencia={sequencia} />}
         {jornada && <JornadaProgress jornada={jornada} jaMarcouHoje={jaMarcouHoje} />}
         {pulso && <MeditandoJunto pulso={pulso} />}
       </div>
 
+      <div className="cm-col-feed">
+        <Feed />
+      </div>
+
       <div className="cm-col-encontros">
+        <BotaoMediteiHoje jaMarcouHoje={jaMarcouHoje} marcando={marcando} onClick={mediteiHoje} />
         <ProximoEncontro />
         <DesafiosSemana />
         <FraseSemana />

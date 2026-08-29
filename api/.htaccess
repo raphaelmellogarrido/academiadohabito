@@ -1,0 +1,8 @@
+RewriteEngine Off
+
+# _config.php (conexão + credenciais) nunca deve ser servido direto por URL —
+# só via `require` de outro PHP desta pasta. Mesmo padrão do repo irmão, ver
+# renato_de_paula/public/api/hotmart/.htaccess.
+<FilesMatch "^_.*\.php$">
+    Require all denied
+</FilesMatch>

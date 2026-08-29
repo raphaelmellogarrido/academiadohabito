@@ -12,7 +12,7 @@ export function FraseSemana() {
 
   return (
     <div className="cartao cm-frase">
-      <p className="cartao-titulo">Frase da semana</p>
+      <p className="cartao-titulo">💬 Frase da semana</p>
       <blockquote>“{frase.frase}”</blockquote>
       <p className="cm-frase-autor">— {frase.autor}</p>
     </div>

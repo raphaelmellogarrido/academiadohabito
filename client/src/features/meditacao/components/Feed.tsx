@@ -1,15 +1,22 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
 import { meditacaoApi, type Humor, type Post } from "../api/meditacaoApi";
+import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
+
+const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; tag?: string }> = {
+  publico: { icone: "🌍", texto: "Visível para toda comunidade — sua experiência pode acolher outra pessoa" },
+  privado: { icone: "🔒", texto: "Apenas para você — seu diário pessoal, ninguém mais vê" },
+  orientador: { icone: "💬", texto: "Apenas orientadores verão — receba um acolhimento privado", tag: "PRIVADO · ACOLHIMENTO" },
+};
 
 const REACOES: ("🙏" | "❤️" | "🔥")[] = ["🙏", "❤️", "🔥"];
 const LIMITE_TEXTO = 140;
 
 const HUMORES: { valor: Humor; label: string }[] = [
-  { valor: "calma", label: "Calma" },
-  { valor: "agitada", label: "Agitada" },
-  { valor: "cansada", label: "Cansada" },
-  { valor: "foco", label: "Foco" },
+  { valor: "calma", label: "Calma 😌" },
+  { valor: "agitada", label: "Agitada 🌪️" },
+  { valor: "cansada", label: "Cansada 😴" },
+  { valor: "foco", label: "Foco 🎯" },
 ];
 
 const EMOJIS = ["😊", "😌", "😢", "😴", "🙏", "❤️", "🔥", "🌱", "🪷", "✨", "💪", "🧘", "👍", "🎉", "☀️", "🌙", "💧", "🍃"];
@@ -38,8 +45,7 @@ function PostItem({ post, onMudou }: { post: Post; onMudou: (p: Post) => void })
         <div>
           <strong>{post.nome}</strong>
           <span className="cm-post-quando">
-            {post.publico ? "Comentário público" : "Privado"} ·{" "}
-            {new Date(post.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
+            {post.publico ? "Comentário público" : "Privado"} · {new Date(post.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
           </span>
         </div>
       </div>
@@ -69,12 +75,7 @@ function PostItem({ post, onMudou }: { post: Post; onMudou: (p: Post) => void })
 
       {respondendo && (
         <div className="cm-post-resposta-form">
-          <input
-            value={textoResposta}
-            onChange={(e) => setTextoResposta(e.target.value)}
-            placeholder="Escreva uma resposta…"
-            onKeyDown={(e) => e.key === "Enter" && enviarResposta()}
-          />
+          <input value={textoResposta} onChange={(e) => setTextoResposta(e.target.value)} placeholder="Escreva uma resposta…" onKeyDown={(e) => e.key === "Enter" && enviarResposta()} />
           <button type="button" onClick={enviarResposta}>
             Enviar
           </button>
@@ -88,7 +89,7 @@ export function Feed() {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [texto, setTexto] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
-  const [publico, setPublico] = useState(true);
+  const [visibilidade, setVisibilidade] = useState<Visibilidade>("publico");
   const [humor, setHumor] = useState<Humor>("calma");
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -154,7 +155,7 @@ export function Feed() {
     if (!texto.trim() && !foto) return;
     setEnviando(true);
     try {
-      const r = await meditacaoApi.postar(texto, foto, publico, humor);
+      const r = await meditacaoApi.postar(texto, foto, visibilidade === "publico", humor);
       setPosts((atual) => [r.post, ...(atual ?? [])]);
       setTexto("");
       setFoto(null);
@@ -179,12 +180,7 @@ export function Feed() {
 
         <div className="cm-composer-humor">
           {HUMORES.map((h) => (
-            <button
-              key={h.valor}
-              type="button"
-              className={`cm-humor-pilula ${humor === h.valor ? "is-selecionada" : ""}`}
-              onClick={() => setHumor(h.valor)}
-            >
+            <button key={h.valor} type="button" className={`cm-humor-pilula ${humor === h.valor ? "is-selecionada" : ""}`} onClick={() => setHumor(h.valor)}>
               {h.label}
             </button>
           ))}
@@ -225,13 +221,7 @@ export function Feed() {
         </div>
 
         <div className="cm-composer-textarea-wrap">
-          <textarea
-            ref={textareaRef}
-            value={texto}
-            maxLength={LIMITE_TEXTO}
-            placeholder="Hoje eu senti…"
-            onChange={(e) => setTexto(e.target.value)}
-          />
+          <textarea ref={textareaRef} value={texto} maxLength={LIMITE_TEXTO} placeholder="Hoje eu senti…" onChange={(e) => setTexto(e.target.value)} />
           <span className="cm-feed-composer-contador">
             {texto.length}/{LIMITE_TEXTO}
           </span>
@@ -239,16 +229,16 @@ export function Feed() {
         {foto && <img src={foto} alt="" className="cm-feed-composer-foto" />}
 
         <div className="cm-feed-composer-rodape">
-          <label className="cm-composer-visibilidade">
-            <span className="cm-dot-verde" />
-            <select value={publico ? "publico" : "privado"} onChange={(e) => setPublico(e.target.value === "publico")}>
-              <option value="publico">Público</option>
-              <option value="privado">Privado</option>
-            </select>
-          </label>
+          <VisibilityToggle value={visibilidade} onChange={setVisibilidade} />
           <button type="button" className="cm-btn-compartilhar" onClick={publicar} disabled={enviando || (!texto.trim() && !foto)}>
             Compartilhar
           </button>
+        </div>
+
+        <div className={`cm-visibility-ajuda cm-visibility-ajuda--${visibilidade}`}>
+          <span>{AJUDA_VISIBILIDADE[visibilidade].icone}</span>
+          <p>{AJUDA_VISIBILIDADE[visibilidade].texto}</p>
+          {AJUDA_VISIBILIDADE[visibilidade].tag && <span className="cm-visibility-ajuda-tag">{AJUDA_VISIBILIDADE[visibilidade].tag}</span>}
         </div>
       </div>
 

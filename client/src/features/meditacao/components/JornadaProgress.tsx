@@ -24,8 +24,13 @@ export function JornadaProgress({ jornada, jaMarcouHoje }: { jornada: Jornada; j
   return (
     <div className="cartao">
       <div className="cm-jornada-cabecalho">
-        <span className="cartao-titulo cm-jornada-titulo">🪷 Sua Jornada</span>
+        <span className="cartao-titulo cm-jornada-titulo">🚀 Sua Jornada</span>
         {jaMarcouHoje && <span className="cm-badge-lilas">Dia de curso concluído</span>}
+        {mostrarCta && (
+          <Link className="cm-jornada-cta" to="/app/meditacao/aulas">
+            Bora pra aula?
+          </Link>
+        )}
       </div>
 
       <div className="cm-jornada-anel-wrap">
@@ -44,26 +49,18 @@ export function JornadaProgress({ jornada, jaMarcouHoje }: { jornada: Jornada; j
         </div>
       </div>
 
-      {dias.length > 0 && (
+      {/* {dias.length > 0 && (
         <div className="cm-jornada-dias">
           {dias.map((d) => (
             <div key={d} className={`cm-jornada-dia ${progresso?.diasConcluidos.includes(d) ? "is-feito" : ""}`}>
-              <span className="cm-jornada-dia-dot">
-                {progresso?.diasConcluidos.includes(d) && <Check size={11} strokeWidth={3} />}
-              </span>
+              <span className="cm-jornada-dia-dot">{progresso?.diasConcluidos.includes(d) && <Check size={11} strokeWidth={3} />}</span>
               <span className="cm-jornada-dia-label">{d}</span>
             </div>
           ))}
         </div>
-      )}
+      )} */}
 
-      {mostrarCta ? (
-        <Link className="cm-jornada-cta" to="/app/meditacao/aulas">
-          Bora pra aula? →
-        </Link>
-      ) : (
-        <p className="cm-jornada-msg">{jornada.mensagem}</p>
-      )}
+      {!mostrarCta && <p className="cm-jornada-msg">{jornada.mensagem}</p>}
     </div>
   );
 }

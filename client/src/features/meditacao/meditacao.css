@@ -1,6 +1,6 @@
 .cm-dashboard {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -46,8 +46,9 @@
   margin-bottom: 14px;
 }
 
-.cm-sequencia-titulo {
+.cm-sequencia-cabecalho .cm-sequencia-titulo {
   margin: 0;
+  align-self: center;
 }
 
 .cm-sequencia-badge {
@@ -59,6 +60,8 @@
   padding: 4px 9px;
   border-radius: 999px;
   white-space: nowrap;
+  align-self: center;
+  margin: 0;
 }
 
 .cm-sequencia-bolinhas {
@@ -151,8 +154,14 @@
   margin-bottom: 6px;
 }
 
-.cm-jornada-titulo {
+.cm-jornada-cabecalho .cm-jornada-titulo {
   margin: 0;
+  align-self: center;
+}
+
+.cm-jornada-cabecalho .cm-jornada-cta {
+  margin: 0;
+  align-self: center;
 }
 
 .cm-badge-lilas {
@@ -239,59 +248,138 @@
 }
 
 .cm-jornada-cta {
-  display: block;
-  text-align: center;
-  margin-top: 4px;
+  flex-shrink: 0;
   font-size: 13px;
   font-weight: 700;
   color: var(--cor-roxo);
+  white-space: nowrap;
 }
 
 /* Meditando junto */
+.cm-meditando-junto-titulo {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
 .cm-meditando-junto {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.cm-mj-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  text-align: center;
+}
+
+.cm-mj-icone {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--cor-creme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cor-texto);
+  flex-shrink: 0;
+}
+
+.cm-mj-item p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
   color: var(--cor-texto-suave);
 }
 
-.cm-meditando-junto strong {
+.cm-mj-item strong {
   color: var(--cor-texto);
   font-size: 15px;
 }
 
 /* Próximo encontro */
-.cm-encontro-cabecalho {
+.cm-encontro-titulo-linha {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.cm-encontro-icone-titulo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--cor-creme);
+  color: var(--cor-texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .cm-encontro-titulo {
   margin: 0;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.cm-encontro-linha-data {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cm-encontro-data {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.cm-encontro-data svg {
+  color: var(--cor-texto-suave);
+  flex-shrink: 0;
 }
 
 .cm-encontro-badge {
-  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--cor-texto-suave);
   background: var(--cor-creme);
-  padding: 4px 9px;
+  padding: 5px 10px;
   border-radius: 999px;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cm-encontro-badge-ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cor-texto-suave);
+  flex-shrink: 0;
 }
 
 .cm-encontro-badge.is-ao-vivo {
   color: #fff;
   background: var(--cor-verde);
   animation: pulso-vivo 1.6s infinite;
+}
+
+.cm-encontro-badge.is-ao-vivo .cm-encontro-badge-ponto {
+  background: #fff;
 }
 
 @keyframes pulso-vivo {
@@ -306,33 +394,27 @@
   }
 }
 
-.cm-encontro-data {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
 .cm-encontro-anfitriao {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
   font-size: 13px;
-  color: var(--cor-texto-suave);
+  color: var(--cor-texto);
 }
 
 .cm-encontro-foto {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: var(--cor-creme);
+  background: var(--cor-texto);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  color: var(--cor-roxo);
+  color: #fff;
   flex-shrink: 0;
 }
 
@@ -407,14 +489,20 @@
   margin: 0;
 }
 
+.cm-encontro-acoes {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .cm-encontro-btn {
   display: block;
   text-align: center;
   width: 100%;
-  padding: 10px;
+  padding: 11px;
   border: none;
-  border-radius: 9px;
-  background: var(--cor-roxo);
+  border-radius: 10px;
+  background: var(--cor-texto);
   color: #fff;
   font-weight: 600;
   font-size: 13.5px;
@@ -429,19 +517,23 @@
   cursor: default;
 }
 
+.cm-encontro-acoes .cm-encontro-btn {
+  flex: 1.2;
+}
+
 .cm-encontro-btn-outline {
   display: block;
   text-align: center;
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  border: 1px solid var(--cor-borda);
-  border-radius: 9px;
-  background: none;
+  flex: 1;
+  padding: 11px;
+  border: none;
+  border-radius: 10px;
+  background: var(--cor-creme);
   color: var(--cor-texto-suave);
   font-weight: 600;
   font-size: 12.5px;
-  opacity: 0.85;
+  white-space: nowrap;
+  opacity: 0.9;
 }
 
 /* Desafios */
@@ -660,31 +752,91 @@
   margin-top: 12px;
 }
 
-.cm-composer-visibilidade {
+/* Toggle de visibilidade (Público / Privado / Orientador) */
+.cm-visibility-toggle {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--cor-borda);
+  background: var(--cor-creme);
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 4px;
+  flex: 1;
+  max-width: 360px;
 }
 
-.cm-composer-visibilidade select {
+.cm-visibility-indicador {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: calc(33.333% - 2.66px);
+  background: var(--cor-branco);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(45, 42, 38, 0.08);
+  transition: left 0.3s ease;
+}
+
+.cm-visibility-opcao {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: none;
   background: none;
   font-family: inherit;
   font-size: 12.5px;
-  font-weight: 600;
-  color: var(--cor-texto);
-  outline: none;
+  color: var(--cor-texto-suave);
+  padding: 8px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
-.cm-dot-verde {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--cor-verde);
+.cm-visibility-opcao.is-ativa {
+  color: var(--cor-texto);
+  font-weight: 700;
+}
+
+/* Barra de ajuda contextual abaixo do toggle */
+.cm-visibility-ajuda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--cor-creme);
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.cm-visibility-ajuda p {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-visibility-ajuda--orientador {
+  background: rgba(155, 127, 199, 0.12);
+}
+
+.cm-visibility-ajuda--privado {
+  background: rgba(224, 185, 120, 0.16);
+}
+
+.cm-visibility-ajuda-tag {
   flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--cor-roxo);
+  background: var(--cor-branco);
+  padding: 4px 9px;
+  border-radius: 999px;
 }
 
 .cm-feed-composer-foto-btn {
@@ -706,8 +858,8 @@
 
 .cm-btn-compartilhar {
   border: none;
-  background: var(--cor-creme);
-  color: var(--cor-texto);
+  background: #000;
+  color: #fff;
   padding: 9px 20px;
   border-radius: 999px;
   font-weight: 700;
@@ -724,6 +876,7 @@
   border-radius: var(--raio);
   padding: 16px;
   box-shadow: var(--sombra);
+  margin-top: 15px;
 }
 
 .cm-post-cabecalho {
