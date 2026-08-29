@@ -2,6 +2,11 @@
 // meditação tem encontro hoje). `aoVivo`/`linkLive` são liberados pelo
 // /admin quando a live realmente começa (troca o BTN "Aguardando" por
 // "Entrar na live" pra todo mundo que reservou).
+interface Reserva {
+  nome: string;
+  avatarUrl: string | null;
+}
+
 interface ProximoEncontro {
   id: string;
   titulo: string;
@@ -11,9 +16,13 @@ interface ProximoEncontro {
   fotoAnfitriao: string | null;
   aoVivo: boolean;
   linkLive: string | null;
-  reservas: Set<string>;
+  checklist: string[];
+  reservas: Map<string, Reserva>; // userId -> quem reservou
 }
 
+// Reservas "seed" (participantes de exemplo) pra pílula de avatares não
+// nascer vazia — mesmo raciocínio do post/comentário seed em
+// community.store.ts / aulas.comentarios.ts.
 const ENCONTROS: Record<string, ProximoEncontro> = {
   meditacao: {
     id: "enc-1",
@@ -24,7 +33,11 @@ const ENCONTROS: Record<string, ProximoEncontro> = {
     fotoAnfitriao: null,
     aoVivo: false,
     linkLive: null,
-    reservas: new Set(),
+    checklist: ["Ambiente silencioso", "Fone de ouvido por perto", "Chegue 5 min antes"],
+    reservas: new Map([
+      ["seed-1", { nome: "Ana Souza", avatarUrl: null }],
+      ["seed-2", { nome: "Bianca Lima", avatarUrl: null }],
+    ]),
   },
 };
 
@@ -38,8 +51,10 @@ function formatarEncontro(e: ProximoEncontro, userId: string) {
     fotoAnfitriao: e.fotoAnfitriao,
     aoVivo: e.aoVivo,
     linkLive: e.aoVivo ? e.linkLive : null,
+    checklist: e.checklist,
     reservado: e.reservas.has(userId),
     totalReservas: e.reservas.size,
+    reservasAvatares: [...e.reservas.values()].slice(0, 3),
   };
 }
 
@@ -49,12 +64,12 @@ export function getProximoEncontro(habitId: string, userId: string) {
   return formatarEncontro(e, userId);
 }
 
-export function alternarReserva(habitId: string, userId: string) {
+export function alternarReserva(habitId: string, usuario: { id: string; nome: string; avatarUrl: string | null }) {
   const e = ENCONTROS[habitId];
   if (!e) return null;
-  if (e.reservas.has(userId)) e.reservas.delete(userId);
-  else e.reservas.add(userId);
-  return formatarEncontro(e, userId);
+  if (e.reservas.has(usuario.id)) e.reservas.delete(usuario.id);
+  else e.reservas.set(usuario.id, { nome: usuario.nome, avatarUrl: usuario.avatarUrl });
+  return formatarEncontro(e, usuario.id);
 }
 
 export function liberarLive(habitId: string, link: string) {

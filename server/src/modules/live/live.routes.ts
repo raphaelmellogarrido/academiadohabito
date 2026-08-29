@@ -13,7 +13,7 @@ liveRouter.get("/meditacao/lives/proxima", requireAuth, (req, res) => {
 
 liveRouter.post("/meditacao/lives/proxima/reservar", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
-  const encontro = alternarReserva("meditacao", usuario.id);
+  const encontro = alternarReserva("meditacao", usuario);
   if (!encontro) return res.status(404).json({ erro: "nenhum encontro agendado" });
   res.json({ ok: true, encontro });
 });

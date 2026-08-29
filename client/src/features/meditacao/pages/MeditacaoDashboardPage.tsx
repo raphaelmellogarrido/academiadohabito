@@ -26,7 +26,7 @@ export function MeditacaoDashboardPage() {
 
       <div className="cm-col-progresso">
         {sequencia && <Sequencia sequencia={sequencia} />}
-        {jornada && <JornadaProgress jornada={jornada} />}
+        {jornada && <JornadaProgress jornada={jornada} jaMarcouHoje={jaMarcouHoje} />}
         {pulso && <MeditandoJunto pulso={pulso} />}
       </div>
 

@@ -26,6 +26,11 @@ export interface Pulso {
   totalPresenca: number;
 }
 
+export interface ReservaAvatar {
+  nome: string;
+  avatarUrl: string | null;
+}
+
 export interface Encontro {
   id: string;
   titulo: string;
@@ -35,8 +40,10 @@ export interface Encontro {
   fotoAnfitriao: string | null;
   aoVivo: boolean;
   linkLive: string | null;
+  checklist: string[];
   reservado: boolean;
   totalReservas: number;
+  reservasAvatares: ReservaAvatar[];
 }
 
 export interface Desafio {
@@ -45,12 +52,15 @@ export interface Desafio {
   concluido: boolean;
 }
 
+export type Humor = "calma" | "agitada" | "cansada" | "foco";
+
 export interface Post {
   id: string;
   userId: string;
   nome: string;
   avatarUrl: string | null;
   texto: string;
+  humor: Humor | null;
   foto: string | null;
   publico: boolean;
   reacoes: Record<"🙏" | "❤️" | "🔥", number>;
@@ -74,8 +84,14 @@ export interface AulaComentario {
   id: string;
   userId: string;
   nome: string;
+  admin: boolean;
   diaAtual: number;
   texto: string;
+  foto: string | null;
+  publico: boolean;
+  reacoes: Record<"🙏" | "❤️" | "🔥", number>;
+  minhasReacoes: Record<string, string[]>;
+  podeExcluir: boolean;
   criadoEm: string;
 }
 
@@ -95,8 +111,8 @@ export const meditacaoApi = {
   frase: () => api.get<{ ok: true; frase: string; autor: string }>("/meditacao/frase"),
 
   feed: () => api.get<{ ok: true; posts: Post[] }>("/meditacao/feed"),
-  postar: (texto: string, foto: string | null, publico: boolean) =>
-    api.post<{ ok: true; post: Post }>("/meditacao/feed", { texto, foto, publico }),
+  postar: (texto: string, foto: string | null, publico: boolean, humor: Humor | null = null) =>
+    api.post<{ ok: true; post: Post }>("/meditacao/feed", { texto, foto, publico, humor }),
   reagir: (postId: string, reacao: "🙏" | "❤️" | "🔥") =>
     api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/reagir`, { reacao }),
   responder: (postId: string, texto: string) =>
@@ -108,6 +124,10 @@ export const meditacaoApi = {
     api.get<{ ok: true; comentarios: AulaComentario[]; proximoCursor: string | null }>(
       `/meditacao/aulas/comentarios${cursor ? `?cursor=${cursor}` : ""}`,
     ),
-  aulasComentar: (texto: string) =>
-    api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", { texto }),
+  aulasComentar: (texto: string, foto: string | null = null, publico: boolean = true) =>
+    api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", { texto, foto, publico }),
+  aulasReagir: (id: string, reacao: "🙏" | "❤️" | "🔥") =>
+    api.post<{ ok: true; comentario: AulaComentario }>(`/meditacao/aulas/comentarios/${id}/reagir`, { reacao }),
+  aulasExcluirComentario: (id: string) =>
+    api.delete<{ ok: true }>(`/meditacao/aulas/comentarios/${id}`),
 };

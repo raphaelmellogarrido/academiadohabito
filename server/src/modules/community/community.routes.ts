@@ -17,11 +17,14 @@ communityRouter.get("/meditacao/feed", requireAuth, (_req, res) => {
   res.json({ ok: true, posts: listarFeed() });
 });
 
+const HUMORES = ["calma", "agitada", "cansada", "foco"];
+
 communityRouter.post("/meditacao/feed", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
-  const { texto = "", foto = null, publico = true } = req.body ?? {};
+  const { texto = "", foto = null, publico = true, humor = null } = req.body ?? {};
   if (!String(texto).trim() && !foto) return res.status(400).json({ erro: "post vazio" });
-  const post = criarPost(usuario, String(texto), foto, Boolean(publico));
+  const humorValido = HUMORES.includes(humor) ? humor : null;
+  const post = criarPost(usuario, String(texto), foto, Boolean(publico), humorValido);
   res.status(201).json({ ok: true, post });
 });
 

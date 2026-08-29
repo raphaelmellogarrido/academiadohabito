@@ -33,5 +33,22 @@ export function useAulaComentarios() {
     setComentarios((atual) => [comentario, ...atual]);
   }
 
-  return { comentarios, carregando, carregandoMais, temMais, carregarMais, adicionarComentario };
+  function atualizarComentario(comentario: AulaComentario) {
+    setComentarios((atual) => atual.map((c) => (c.id === comentario.id ? comentario : c)));
+  }
+
+  function removerComentario(id: string) {
+    setComentarios((atual) => atual.filter((c) => c.id !== id));
+  }
+
+  return {
+    comentarios,
+    carregando,
+    carregandoMais,
+    temMais,
+    carregarMais,
+    adicionarComentario,
+    atualizarComentario,
+    removerComentario,
+  };
 }

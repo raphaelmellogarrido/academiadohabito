@@ -17,12 +17,15 @@ export function DesafiosSemana() {
 
   return (
     <div className="cartao">
-      <p className="cartao-titulo">Desafios da semana</p>
+      <p className="cartao-titulo">🔥 Desafios da semana</p>
       <ul className="cm-desafios">
         {desafios.map((d) => (
           <li key={d.id} className={d.concluido ? "is-concluido" : ""}>
             <label>
-              <input type="checkbox" checked={d.concluido} onChange={() => alternar(d.id)} />
+              {/* Cada desafio é independente — `name` próprio evita virar um
+                  grupo exclusivo de rádio (só o visual de círculo é de rádio,
+                  o comportamento continua "alternar individualmente"). */}
+              <input type="radio" name={`desafio-${d.id}`} checked={d.concluido} onChange={() => alternar(d.id)} />
               <span>{d.texto}</span>
             </label>
           </li>

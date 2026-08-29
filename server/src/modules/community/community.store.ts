@@ -11,12 +11,15 @@ export interface Resposta {
   criadoEm: string;
 }
 
+export type Humor = "calma" | "agitada" | "cansada" | "foco";
+
 export interface Post {
   id: string;
   userId: string;
   nome: string;
   avatarUrl: string | null;
   texto: string;
+  humor: Humor | null;
   foto: string | null;
   publico: boolean;
   reacoes: Record<Reacao, number>;
@@ -35,6 +38,7 @@ const FEED: Post[] = [
     nome: "Raphael Silva",
     avatarUrl: null,
     texto: "Hoje a mente estava agitada, mas os 10 minutos valeram cada segundo. 🙏",
+    humor: "agitada",
     foto: null,
     publico: true,
     reacoes: { "🙏": 3, "❤️": 1, "🔥": 0 },
@@ -53,6 +57,7 @@ export function criarPost(
   texto: string,
   foto: string | null,
   publico: boolean,
+  humor: Humor | null = null,
 ) {
   const post: Post = {
     id: proximoId(),
@@ -60,6 +65,7 @@ export function criarPost(
     nome: usuario.nome,
     avatarUrl: usuario.avatarUrl,
     texto: texto.slice(0, 140),
+    humor,
     foto,
     publico,
     reacoes: { "🙏": 0, "❤️": 0, "🔥": 0 },
