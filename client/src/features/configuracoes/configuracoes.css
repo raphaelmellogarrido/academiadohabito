@@ -1,0 +1,185 @@
+.cfg-pagina {
+  max-width: 920px;
+}
+
+.cfg-titulo {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.cfg-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .cfg-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cfg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cfg-avatar-linha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.cfg-avatar-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--cor-creme);
+  flex-shrink: 0;
+}
+
+.cfg-avatar-preview--iniciais {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cor-roxo);
+  color: #fff;
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.cfg-avatar-dica {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--cor-texto-suave);
+}
+
+.cfg-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+  font-weight: 600;
+}
+
+.cfg-campo input {
+  padding: 9px 11px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--cor-texto);
+  font-family: inherit;
+}
+
+.cfg-campo input:disabled {
+  background: var(--cor-creme);
+  color: var(--cor-texto-suave);
+}
+
+.cfg-campo-dica {
+  margin: -6px 0 12px;
+  font-size: 11.5px;
+  color: var(--cor-texto-suave);
+}
+
+.cfg-secao-sub {
+  margin: 6px 0 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--cor-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cfg-mensagem {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.cfg-mensagem--erro {
+  color: #b5514a;
+}
+
+.cfg-mensagem--sucesso {
+  color: var(--cor-verde);
+}
+
+.cfg-btn-primario {
+  align-self: flex-start;
+  border: none;
+  background: var(--cor-roxo);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.cfg-btn-primario:disabled {
+  opacity: 0.5;
+}
+
+.cfg-btn-secundario {
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-creme);
+  color: var(--cor-texto);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+/* Modal de crop */
+.cfg-modal-fundo {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 42, 38, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.cfg-modal {
+  background: var(--cor-branco);
+  border-radius: var(--raio);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--sombra);
+}
+
+.cfg-crop-canvas {
+  border-radius: 50%;
+  cursor: grab;
+  background: var(--cor-creme);
+  touch-action: none;
+}
+
+.cfg-crop-canvas:active {
+  cursor: grabbing;
+}
+
+.cfg-crop-zoom {
+  width: 260px;
+}
+
+.cfg-modal-acoes {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.cfg-modal-acoes button {
+  flex: 1;
+}

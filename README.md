@@ -1,7 +1,7 @@
 # Academia do Hábito
 
 App logado de `academiadohabito.com.br` — acompanhamento de múltiplos
-hábitos (meditação, alimentação, exercício, e futuros).
+hábitos (meditação ativa hoje; alimentação e exercício em breve).
 
 > **Este projeto é separado de `renatodepaula.com`** (o blog institucional,
 > pasta `renato_de_paula/`, sibling deste diretório). Nenhum código é
@@ -9,16 +9,15 @@ hábitos (meditação, alimentação, exercício, e futuros).
 
 ## Stack
 
-Vite + React 19 + React Router 7 no client · Express 5 + MySQL (mysql2) no
-server · um único `package.json` na raiz, rodando os dois juntos em dev via
-`concurrently` (mesmo padrão do `renato_de_paula`).
+Vite + React 19 + React Router 7 (`client/`) · Express 5 + TypeScript
+(`server/`, rodado via `tsx`) · um único `package.json` na raiz, rodando os
+dois juntos em dev via `concurrently`.
 
 ## Como rodar
 
 ```bash
 npm install
-cp .env.example .env   # preencher com credenciais reais do MySQL
-npm run dev:all        # client (Vite) + server (Express) juntos
+npm run dev:all        # client (Vite, :5173) + server (Express, :3001) juntos
 ```
 
 Scripts individuais: `npm run dev` (só client), `npm run server` (só API),
@@ -26,17 +25,18 @@ Scripts individuais: `npm run dev` (só client), `npm run server` (só API),
 
 ## Organização do código
 
-Feature-based por hábito — cada hábito é uma pasta isolada em
-`src/features/<habito>/` e `server/features/<habito>/`. Leia:
+- `client/src/app/` — router + layout logado (Sidebar).
+- `client/src/features/<habito>/` — 1 pasta por hábito (`meditacao` completo,
+  `alimentacao`/`exercicio` placeholders).
+- `client/src/shared/` — CSS global, fetch wrapper, hooks cross-feature.
+- `server/src/modules/<dominio>/` — 1 pasta por domínio (`auth`, `users`,
+  `habits`, `user-habits`, `community`, `gamification`, `live`).
 
-- [`docs/ARQUITETURA.md`](./docs/ARQUITETURA.md) — por que a estrutura é
-  assim, o papel de cada camada (`features/`, `shared/`, `auth/`, `core/`).
-- [`docs/como-adicionar-um-habito.md`](./docs/como-adicionar-um-habito.md) —
-  passo a passo pra plugar um hábito novo (ex: sono, água, leitura).
+Leia [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) e
+[`docs/HABIT_LOGIC.md`](./docs/HABIT_LOGIC.md).
 
 ## Estado atual
 
-Estrutura de pastas e esqueleto (stubs) prontos, com `meditacao` como hábito
-de referência completo e `alimentacao`/`exercicio` como placeholders no
-mesmo padrão. Nenhuma lógica de negócio foi migrada do projeto antigo ainda
-— isso é o próximo passo, feature por feature.
+`meditacao` é o hábito de referência, funcional ponta a ponta (mock, em
+memória, sem persistência real). `alimentacao`/`exercicio` são placeholders
+(`status: "em_breve"`).
