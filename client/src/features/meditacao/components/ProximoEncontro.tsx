@@ -87,7 +87,7 @@ export function ProximoEncontro() {
             </span>
           ))}
         </div>
-        <span className="cm-encontro-contador">{encontro.totalReservas} reservaram</span>
+        <span className="cm-encontro-contador">{encontro.totalReservas} pessoas reservaram</span>
       </div>
 
       {encontro.aoVivo ? (
