@@ -5,6 +5,9 @@ import {
   criarPost,
   reagir,
   responder,
+  editarPost,
+  alterarVisibilidade,
+  excluirPost,
   getDesafiosDaSemana,
   alternarDesafio,
   getFrase,
@@ -48,6 +51,34 @@ communityRouter.post("/meditacao/feed/:id/responder", requireAuth, (req, res) =>
   const post = responder(String(req.params.id), usuario, String(texto));
   if (!post) return res.status(404).json({ erro: "post não encontrado" });
   res.json({ ok: true, post });
+});
+
+communityRouter.put("/meditacao/feed/:id", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  const { texto = "" } = req.body ?? {};
+  if (!String(texto).trim()) return res.status(400).json({ erro: "texto vazio" });
+  const resultado = editarPost(String(req.params.id), usuario, String(texto));
+  if (resultado === "nao_encontrado") return res.status(404).json({ erro: "post não encontrado" });
+  if (resultado === "sem_permissao") return res.status(403).json({ erro: "sem permissão" });
+  res.json({ ok: true, post: resultado });
+});
+
+communityRouter.put("/meditacao/feed/:id/visibilidade", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  const { visibilidade } = req.body ?? {};
+  if (!VISIBILIDADES.includes(visibilidade)) return res.status(400).json({ erro: "visibilidade inválida" });
+  const resultado = alterarVisibilidade(String(req.params.id), usuario, visibilidade);
+  if (resultado === "nao_encontrado") return res.status(404).json({ erro: "post não encontrado" });
+  if (resultado === "sem_permissao") return res.status(403).json({ erro: "sem permissão" });
+  res.json({ ok: true, post: resultado });
+});
+
+communityRouter.delete("/meditacao/feed/:id", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  const resultado = excluirPost(String(req.params.id), usuario);
+  if (resultado === "nao_encontrado") return res.status(404).json({ erro: "post não encontrado" });
+  if (resultado === "sem_permissao") return res.status(403).json({ erro: "sem permissão" });
+  res.json({ ok: true });
 });
 
 communityRouter.get("/meditacao/desafios", requireAuth, (req, res) => {

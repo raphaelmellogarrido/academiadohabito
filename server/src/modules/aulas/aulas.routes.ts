@@ -5,9 +5,14 @@ import {
   listarComentarios,
   criarComentario,
   reagirComentario,
+  editarComentario,
+  alterarVisibilidadeComentario,
   excluirComentario,
   LIMITE_TEXTO,
+  type Visibilidade,
 } from "./aulas.comentarios.js";
+
+const VISIBILIDADES: Visibilidade[] = ["publico", "privado", "orientador"];
 
 export const aulasRouter = Router();
 
@@ -28,16 +33,17 @@ aulasRouter.post("/meditacao/aulas/concluir", requireAuth, (req, res) => {
 aulasRouter.get("/meditacao/aulas/comentarios", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
   const cursor = typeof req.query.cursor === "string" ? req.query.cursor : null;
-  res.json({ ok: true, ...listarComentarios(cursor, usuario.id) });
+  res.json({ ok: true, ...listarComentarios(cursor, usuario) });
 });
 
 aulasRouter.post("/meditacao/aulas/comentarios", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
-  const { texto = "", foto = null, publico = true } = req.body ?? {};
+  const { texto = "", foto = null, visibilidade = "publico" } = req.body ?? {};
   if (!String(texto).trim() && !foto) return res.status(400).json({ erro: "comentário vazio" });
   if (String(texto).length > LIMITE_TEXTO) return res.status(400).json({ erro: `máximo ${LIMITE_TEXTO} caracteres` });
+  const visibilidadeValida = VISIBILIDADES.includes(visibilidade) ? visibilidade : "publico";
   const diaAtual = getProgresso(usuario.id).diaAtual;
-  const comentario = criarComentario(usuario, diaAtual, String(texto), foto, Boolean(publico));
+  const comentario = criarComentario(usuario, diaAtual, String(texto), foto, visibilidadeValida);
   res.status(201).json({ ok: true, comentario });
 });
 
@@ -45,9 +51,29 @@ aulasRouter.post("/meditacao/aulas/comentarios/:id/reagir", requireAuth, (req, r
   const usuario = (req as any).usuario;
   const { reacao } = req.body ?? {};
   if (!["🙏", "❤️", "🔥"].includes(reacao)) return res.status(400).json({ erro: "reação inválida" });
-  const comentario = reagirComentario(String(req.params.id), usuario.id, reacao);
+  const comentario = reagirComentario(String(req.params.id), usuario, reacao);
   if (!comentario) return res.status(404).json({ erro: "comentário não encontrado" });
   res.json({ ok: true, comentario });
+});
+
+aulasRouter.put("/meditacao/aulas/comentarios/:id", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  const { texto = "" } = req.body ?? {};
+  if (!String(texto).trim()) return res.status(400).json({ erro: "texto vazio" });
+  const resultado = editarComentario(String(req.params.id), usuario, String(texto));
+  if (resultado === "nao_encontrado") return res.status(404).json({ erro: "comentário não encontrado" });
+  if (resultado === "sem_permissao") return res.status(403).json({ erro: "sem permissão" });
+  res.json({ ok: true, comentario: resultado });
+});
+
+aulasRouter.put("/meditacao/aulas/comentarios/:id/visibilidade", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  const { visibilidade } = req.body ?? {};
+  if (!VISIBILIDADES.includes(visibilidade)) return res.status(400).json({ erro: "visibilidade inválida" });
+  const resultado = alterarVisibilidadeComentario(String(req.params.id), usuario, visibilidade);
+  if (resultado === "nao_encontrado") return res.status(404).json({ erro: "comentário não encontrado" });
+  if (resultado === "sem_permissao") return res.status(403).json({ erro: "sem permissão" });
+  res.json({ ok: true, comentario: resultado });
 });
 
 aulasRouter.delete("/meditacao/aulas/comentarios/:id", requireAuth, (req, res) => {

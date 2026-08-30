@@ -1,14 +1,13 @@
 <?php
-// DELETE /api/aulas-comentario-excluir.php?id=... — real de DELETE
-// /meditacao/aulas/comentarios/:id. Id vai na query string (não no corpo,
-// já que api.delete() do client não manda body) — mesmo padrão de
-// imagem-comentario.php pra passar id por GET. Dono OU ehOrientadorEmail()
-// (reaproveitada como "admin" por enquanto, ver _feed.php) pode excluir —
-// mesmo contrato do mock quando usuario.admin é true.
+// PUT /api/aulas-comentario-editar.php — real de PUT
+// /meditacao/aulas/comentarios/:id. Editar texto é sempre só do dono, sem
+// bypass de orientador/admin (mesmo contrato do mock em
+// editarComentario/aulas.comentarios.ts). Ver _aulas.php pro shape de
+// AulaComentario.
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
-header('Access-Control-Allow-Methods: DELETE, OPTIONS');
+header('Access-Control-Allow-Methods: PUT, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
     http_response_code(405);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['ok' => false, 'erro' => 'Método não permitido']);
@@ -22,11 +21,17 @@ require __DIR__ . '/_config.php';
 require __DIR__ . '/_feed.php';
 require __DIR__ . '/_aulas.php';
 
-$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
-if ($id <= 0) {
+$input = json_decode(file_get_contents('php://input'), true) ?: [];
+$id = (int) ($input['id'] ?? 0);
+$texto = trim($input['texto'] ?? '');
+
+if ($id <= 0 || $texto === '') {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'erro' => 'id inválido']);
+    echo json_encode(['ok' => false, 'erro' => 'texto vazio']);
     exit;
+}
+if (mb_strlen($texto) > 140) {
+    $texto = mb_substr($texto, 0, 140);
 }
 
 $stmt = $mysqli->prepare(
@@ -42,20 +47,15 @@ if (!$row) {
     echo json_encode(['ok' => false, 'erro' => 'comentário não encontrado']);
     exit;
 }
-if ($row['email'] !== $email && !ehOrientadorEmail($email)) {
+if ($row['email'] !== $email) {
     http_response_code(403);
     echo json_encode(['ok' => false, 'erro' => 'sem permissão']);
     exit;
 }
 
-$stmt = $mysqli->prepare("DELETE FROM comentario_reacoes WHERE comentario_id = ?");
-$stmt->bind_param('i', $id);
+$stmt = $mysqli->prepare("UPDATE comentarios SET comentario = ? WHERE id = ?");
+$stmt->bind_param('si', $texto, $id);
 $stmt->execute();
 $stmt->close();
 
-$stmt = $mysqli->prepare("DELETE FROM comentarios WHERE id = ?");
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$stmt->close();
-
-echo json_encode(['ok' => true]);
+echo json_encode(['ok' => true, 'comentario' => montarAulaComentario($mysqli, $id, $email)]);

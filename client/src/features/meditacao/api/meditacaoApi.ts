@@ -79,6 +79,8 @@ export interface Post {
   reacoes: Record<"🙏" | "❤️" | "🔥", number>;
   minhasReacoes: Record<string, string[]>;
   respostas: { id: string; userId: string; nome: string; texto: string; criadoEm: string }[];
+  podeEditar: boolean;
+  podeExcluir: boolean;
   criadoEm: string;
 }
 
@@ -101,9 +103,10 @@ export interface AulaComentario {
   diaAtual: number;
   texto: string;
   foto: string | null;
-  publico: boolean;
+  visibilidade: Visibilidade;
   reacoes: Record<"🙏" | "❤️" | "🔥", number>;
   minhasReacoes: Record<string, string[]>;
+  podeEditar: boolean;
   podeExcluir: boolean;
   criadoEm: string;
 }
@@ -167,6 +170,18 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.post<{ ok: true; post: Post }>("/feed-responder.php", { id: postId, texto })
       : api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/responder`, { texto }),
+  editarPost: (postId: string, texto: string) =>
+    ehProducaoReal
+      ? api.put<{ ok: true; post: Post }>("/feed-editar.php", { id: postId, texto })
+      : api.put<{ ok: true; post: Post }>(`/meditacao/feed/${postId}`, { texto }),
+  alterarVisibilidadePost: (postId: string, visibilidade: Visibilidade) =>
+    ehProducaoReal
+      ? api.put<{ ok: true; post: Post }>("/feed-visibilidade.php", { id: postId, visibilidade })
+      : api.put<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/visibilidade`, { visibilidade }),
+  excluirPost: (postId: string) =>
+    ehProducaoReal
+      ? api.delete<{ ok: true }>(`/feed-excluir.php?id=${postId}`)
+      : api.delete<{ ok: true }>(`/meditacao/feed/${postId}`),
 
   aulasProgresso: () =>
     ehProducaoReal
@@ -184,10 +199,14 @@ export const meditacaoApi = {
       : api.get<{ ok: true; comentarios: AulaComentario[]; proximoCursor: string | null }>(
           `/meditacao/aulas/comentarios${cursor ? `?cursor=${cursor}` : ""}`,
         ),
-  aulasComentar: (texto: string, foto: string | null = null, publico: boolean = true) =>
+  aulasComentar: (texto: string, foto: string | null = null, visibilidade: Visibilidade = "publico") =>
     ehProducaoReal
-      ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentarios.php", { texto, foto, publico })
-      : api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", { texto, foto, publico }),
+      ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentarios.php", {
+          texto,
+          foto,
+          publico: visibilidade === "publico",
+        })
+      : api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", { texto, foto, visibilidade }),
   aulasReagir: (id: string, reacao: "🙏" | "❤️" | "🔥") =>
     ehProducaoReal
       ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-reagir.php", { id, reacao })
@@ -196,4 +215,12 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.delete<{ ok: true }>(`/aulas-comentario-excluir.php?id=${id}`)
       : api.delete<{ ok: true }>(`/meditacao/aulas/comentarios/${id}`),
+  aulasEditarComentario: (id: string, texto: string) =>
+    ehProducaoReal
+      ? api.put<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-editar.php", { id, texto })
+      : api.put<{ ok: true; comentario: AulaComentario }>(`/meditacao/aulas/comentarios/${id}`, { texto }),
+  aulasAlterarVisibilidadeComentario: (id: string, visibilidade: Visibilidade) =>
+    ehProducaoReal
+      ? api.put<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-visibilidade.php", { id, visibilidade })
+      : api.put<{ ok: true; comentario: AulaComentario }>(`/meditacao/aulas/comentarios/${id}/visibilidade`, { visibilidade }),
 };

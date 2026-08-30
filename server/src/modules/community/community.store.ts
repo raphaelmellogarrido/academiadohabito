@@ -33,6 +33,17 @@ export interface Post {
   criadoEm: string;
 }
 
+// Shape devolvido ao client, com as permissões calculadas pro usuário que
+// está pedindo — mesmo padrão de paraCliente() em aulas.comentarios.ts.
+// Editar visibilidade/texto é só do dono; excluir também aceita admin.
+function paraClientePost(post: Post, usuarioAtual: { id: string; admin: boolean }) {
+  return {
+    ...post,
+    podeEditar: post.userId === usuarioAtual.id,
+    podeExcluir: post.userId === usuarioAtual.id || usuarioAtual.admin,
+  };
+}
+
 // Único ponto que decide se `usuarioAtual` pode ver `post` — usado tanto pra
 // filtrar o feed quanto pra barrar reagir/responder num post que ele nem
 // deveria enxergar (mesma checagem dos dois lados, igual condVisibilidadeSql
@@ -64,14 +75,15 @@ const FEED: Post[] = [
   },
 ];
 
-export function listarFeed(usuarioAtual: { id: string; email: string }) {
+export function listarFeed(usuarioAtual: { id: string; email: string; admin: boolean }) {
   return [...FEED]
     .filter((p) => podeVerPost(p, usuarioAtual))
-    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
+    .map((p) => paraClientePost(p, usuarioAtual));
 }
 
 export function criarPost(
-  usuario: { id: string; nome: string; avatarUrl: string | null },
+  usuario: { id: string; nome: string; avatarUrl: string | null; admin: boolean },
   texto: string,
   foto: string | null,
   visibilidade: Visibilidade,
@@ -92,10 +104,10 @@ export function criarPost(
     criadoEm: new Date().toISOString(),
   };
   FEED.push(post);
-  return post;
+  return paraClientePost(post, usuario);
 }
 
-export function reagir(postId: string, usuarioAtual: { id: string; email: string }, reacao: Reacao) {
+export function reagir(postId: string, usuarioAtual: { id: string; email: string; admin: boolean }, reacao: Reacao) {
   const post = FEED.find((p) => p.id === postId);
   if (!post || !podeVerPost(post, usuarioAtual)) return null;
   const userId = usuarioAtual.id;
@@ -107,10 +119,10 @@ export function reagir(postId: string, usuarioAtual: { id: string; email: string
     post.reacoes[reacao] += 1;
     post.minhasReacoes[userId] = [...minhas, reacao];
   }
-  return post;
+  return paraClientePost(post, usuarioAtual);
 }
 
-export function responder(postId: string, usuario: { id: string; nome: string; email: string }, texto: string) {
+export function responder(postId: string, usuario: { id: string; nome: string; email: string; admin: boolean }, texto: string) {
   const post = FEED.find((p) => p.id === postId);
   if (!post || !podeVerPost(post, usuario)) return null;
   const resposta: Resposta = {
@@ -121,7 +133,34 @@ export function responder(postId: string, usuario: { id: string; nome: string; e
     criadoEm: new Date().toISOString(),
   };
   post.respostas.push(resposta);
-  return post;
+  return paraClientePost(post, usuario);
+}
+
+// Só o dono edita texto/visibilidade; excluir aceita dono OU admin (mesmo
+// contrato de excluirComentario em aulas.comentarios.ts).
+export function editarPost(postId: string, usuario: { id: string; admin: boolean }, texto: string) {
+  const post = FEED.find((p) => p.id === postId);
+  if (!post) return "nao_encontrado" as const;
+  if (post.userId !== usuario.id) return "sem_permissao" as const;
+  post.texto = texto.slice(0, 140);
+  return paraClientePost(post, usuario);
+}
+
+export function alterarVisibilidade(postId: string, usuario: { id: string; admin: boolean }, visibilidade: Visibilidade) {
+  const post = FEED.find((p) => p.id === postId);
+  if (!post) return "nao_encontrado" as const;
+  if (post.userId !== usuario.id) return "sem_permissao" as const;
+  post.visibilidade = visibilidade;
+  return paraClientePost(post, usuario);
+}
+
+export function excluirPost(postId: string, usuario: { id: string; admin: boolean }) {
+  const idx = FEED.findIndex((p) => p.id === postId);
+  if (idx === -1) return "nao_encontrado" as const;
+  const post = FEED[idx];
+  if (post.userId !== usuario.id && !usuario.admin) return "sem_permissao" as const;
+  FEED.splice(idx, 1);
+  return "ok" as const;
 }
 
 // Consumido pelo módulo de gamificação (meditando-junto -> partilhasHoje) —

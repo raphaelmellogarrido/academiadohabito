@@ -117,10 +117,11 @@ function concluirDiaAula(mysqli $mysqli, string $email, int $dia): ?array
 }
 
 // Reconstrói 1 comentário de aula completo (shape de `AulaComentario`) pelo
-// id — usado por aulas-comentario-reagir.php depois de mutar uma linha.
-// `admin` sempre false (mesma regra de alunoParaUsuario() em _config.php:
-// não existe esse conceito em `alunos` ainda) -> podeExcluir fica restrito
-// ao próprio autor, sem bypass de admin.
+// id — usado por aulas-comentario-reagir.php/editar.php/visibilidade.php
+// depois de mutar uma linha. `admin` sempre false (mesma regra de
+// alunoParaUsuario() em _config.php: não existe esse conceito em `alunos`
+// ainda) -> podeExcluir aceita o próprio autor OU ehOrientadorEmail()
+// (reaproveitada como "admin" por enquanto, ver _feed.php).
 function montarAulaComentario(mysqli $mysqli, int $id, string $emailAtual): ?array
 {
     $stmt = $mysqli->prepare(
@@ -146,10 +147,11 @@ function montarAulaComentario(mysqli $mysqli, int $id, string $emailAtual): ?arr
         'diaAtual' => $dia,
         'texto' => $row['comentario'],
         'foto' => $row['image_mime'] ? ('/api/imagem-comentario.php?id=' . $row['id']) : null,
-        'publico' => ($row['visibilidade'] ?: 'publico') === 'publico',
+        'visibilidade' => $row['visibilidade'] ?: 'publico',
         'reacoes' => $reacoes['reacoes'],
         'minhasReacoes' => $reacoes['minhasReacoes'],
-        'podeExcluir' => $row['email'] === $emailAtual,
+        'podeEditar' => $row['email'] === $emailAtual,
+        'podeExcluir' => $row['email'] === $emailAtual || ehOrientadorEmail($emailAtual),
         'criadoEm' => isoComOffset($row['created_at']),
     ];
 }

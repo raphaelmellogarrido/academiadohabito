@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Globe, Image as ImageIcon, Trash2 } from "lucide-react";
-import { meditacaoApi, type AulaComentario } from "../api/meditacaoApi";
+import { Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
+import { meditacaoApi, type AulaComentario, type Visibilidade } from "../api/meditacaoApi";
 import { useAulaComentarios } from "../hooks/useAulaComentarios";
+import { VisibilidadeIcone } from "./VisibilidadeIcone";
 
 const REACOES: ("🙏" | "❤️" | "🔥")[] = ["🙏", "❤️", "🔥"];
 const LIMITE_TEXTO = 140;
@@ -17,9 +18,29 @@ function ComentarioItem({
   onExcluir: (id: string) => void;
   onResponder: (nome: string) => void;
 }) {
+  const [editando, setEditando] = useState(false);
+  const [textoEdicao, setTextoEdicao] = useState(comentario.texto);
+
   async function reagir(reacao: "🙏" | "❤️" | "🔥") {
     const r = await meditacaoApi.aulasReagir(comentario.id, reacao);
     onReagir(r.comentario);
+  }
+
+  async function alterarVisibilidade(nova: Visibilidade) {
+    const r = await meditacaoApi.aulasAlterarVisibilidadeComentario(comentario.id, nova);
+    onReagir(r.comentario);
+  }
+
+  function comecarEdicao() {
+    setTextoEdicao(comentario.texto);
+    setEditando(true);
+  }
+
+  async function salvarEdicao() {
+    if (!textoEdicao.trim()) return;
+    const r = await meditacaoApi.aulasEditarComentario(comentario.id, textoEdicao.trim());
+    onReagir(r.comentario);
+    setEditando(false);
   }
 
   async function excluir() {
@@ -38,10 +59,11 @@ function ComentarioItem({
             <span> • Dia {comentario.diaAtual}</span>
           </p>
           <div className="cm-comentario-icones">
-            {comentario.publico && (
-              <span title="Comentário público">
-                <Globe size={13} />
-              </span>
+            <VisibilidadeIcone valor={comentario.visibilidade} podeAlterar={comentario.podeEditar} onAlterar={alterarVisibilidade} />
+            {comentario.podeEditar && (
+              <button type="button" className="cm-comentario-editar" onClick={comecarEdicao} title="Editar">
+                <Pencil size={13} />
+              </button>
             )}
             {comentario.podeExcluir && (
               <button type="button" className="cm-comentario-excluir" onClick={excluir} title="Excluir">
@@ -50,17 +72,31 @@ function ComentarioItem({
             )}
           </div>
         </div>
-        <p className="cm-comentario-texto">{comentario.texto}</p>
+        {editando ? (
+          <div className="cm-post-resposta-form">
+            <input value={textoEdicao} maxLength={LIMITE_TEXTO} onChange={(e) => setTextoEdicao(e.target.value)} onKeyDown={(e) => e.key === "Enter" && salvarEdicao()} />
+            <button type="button" onClick={salvarEdicao}>
+              Salvar
+            </button>
+            <button type="button" className="cm-post-edicao-cancelar" onClick={() => setEditando(false)}>
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <p className="cm-comentario-texto">{comentario.texto}</p>
+        )}
         {comentario.foto && <img src={comentario.foto} alt="" className="cm-comentario-foto" />}
         <div className="cm-post-acoes">
-          {REACOES.map((r) => (
-            <button key={r} type="button" onClick={() => reagir(r)} className="cm-post-reacao">
-              {r} {comentario.reacoes[r] > 0 && comentario.reacoes[r]}
-            </button>
-          ))}
           <button type="button" className="cm-post-responder" onClick={() => onResponder(comentario.nome)}>
             Responder
           </button>
+          <div className="cm-post-reacoes">
+            {REACOES.map((r) => (
+              <button key={r} type="button" onClick={() => reagir(r)} className="cm-post-reacao">
+                {r} {comentario.reacoes[r] > 0 && comentario.reacoes[r]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </li>

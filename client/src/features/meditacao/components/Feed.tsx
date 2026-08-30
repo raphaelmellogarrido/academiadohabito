@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
+import { Bold, Italic, Smile, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
 import { meditacaoApi, type Humor, type Post } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
+import { VisibilidadeIcone } from "./VisibilidadeIcone";
 
 const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; tag?: string }> = {
   publico: { icone: "🌍", texto: "Visível para toda comunidade — sua experiência pode acolher outra pessoa" },
@@ -12,12 +13,6 @@ const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; t
 const REACOES: ("🙏" | "❤️" | "🔥")[] = ["🙏", "❤️", "🔥"];
 const LIMITE_TEXTO = 140;
 
-const LABEL_VISIBILIDADE_POST: Record<Visibilidade, string> = {
-  publico: "Comentário público",
-  privado: "Privado",
-  orientador: "Para orientadores",
-};
-
 const HUMORES: { valor: Humor; label: string }[] = [
   { valor: "calma", label: "Calma 😌" },
   { valor: "agitada", label: "Agitada 🌪️" },
@@ -27,9 +22,11 @@ const HUMORES: { valor: Humor; label: string }[] = [
 
 const EMOJIS = ["😊", "😌", "😢", "😴", "🙏", "❤️", "🔥", "🌱", "🪷", "✨", "💪", "🧘", "👍", "🎉", "☀️", "🌙", "💧", "🍃"];
 
-function PostItem({ post, onMudou }: { post: Post; onMudou: (p: Post) => void }) {
+function PostItem({ post, onMudou, onExcluir }: { post: Post; onMudou: (p: Post) => void; onExcluir: (id: string) => void }) {
   const [respondendo, setRespondendo] = useState(false);
   const [textoResposta, setTextoResposta] = useState("");
+  const [editando, setEditando] = useState(false);
+  const [textoEdicao, setTextoEdicao] = useState(post.texto);
 
   async function reagir(reacao: "🙏" | "❤️" | "🔥") {
     const r = await meditacaoApi.reagir(post.id, reacao);
@@ -44,29 +41,81 @@ function PostItem({ post, onMudou }: { post: Post; onMudou: (p: Post) => void })
     setRespondendo(false);
   }
 
+  async function alterarVisibilidade(nova: Visibilidade) {
+    const r = await meditacaoApi.alterarVisibilidadePost(post.id, nova);
+    onMudou(r.post);
+  }
+
+  function comecarEdicao() {
+    setTextoEdicao(post.texto);
+    setEditando(true);
+  }
+
+  async function salvarEdicao() {
+    if (!textoEdicao.trim()) return;
+    const r = await meditacaoApi.editarPost(post.id, textoEdicao.trim());
+    onMudou(r.post);
+    setEditando(false);
+  }
+
+  async function excluir() {
+    await meditacaoApi.excluirPost(post.id);
+    onExcluir(post.id);
+  }
+
   return (
     <div className="cm-post">
       <div className="cm-post-cabecalho">
         <div className="cm-post-avatar">{post.nome.slice(0, 1).toUpperCase()}</div>
-        <div>
-          <strong>{post.nome}</strong>
-          <span className="cm-post-quando">
-            {LABEL_VISIBILIDADE_POST[post.visibilidade]} · {new Date(post.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
-          </span>
+        <div className="cm-post-cabecalho-topo">
+          <div>
+            <strong>{post.nome}</strong>
+            <span className="cm-post-quando">
+              {new Date(post.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
+            </span>
+          </div>
+          <div className="cm-comentario-icones">
+            <VisibilidadeIcone valor={post.visibilidade} podeAlterar={post.podeEditar} onAlterar={alterarVisibilidade} />
+            {post.podeEditar && (
+              <button type="button" className="cm-comentario-editar" onClick={comecarEdicao} title="Editar">
+                <Pencil size={13} />
+              </button>
+            )}
+            {post.podeExcluir && (
+              <button type="button" className="cm-comentario-excluir" onClick={excluir} title="Excluir">
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
-      <p className="cm-post-texto">{post.texto}</p>
+
+      {editando ? (
+        <div className="cm-post-resposta-form">
+          <input value={textoEdicao} maxLength={LIMITE_TEXTO} onChange={(e) => setTextoEdicao(e.target.value)} onKeyDown={(e) => e.key === "Enter" && salvarEdicao()} />
+          <button type="button" onClick={salvarEdicao}>
+            Salvar
+          </button>
+          <button type="button" className="cm-post-edicao-cancelar" onClick={() => setEditando(false)}>
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <p className="cm-post-texto">{post.texto}</p>
+      )}
       {post.foto && <img src={post.foto} alt="" className="cm-post-foto" />}
 
       <div className="cm-post-acoes">
-        {REACOES.map((r) => (
-          <button key={r} type="button" onClick={() => reagir(r)} className="cm-post-reacao">
-            {r} {post.reacoes[r] > 0 && post.reacoes[r]}
-          </button>
-        ))}
         <button type="button" className="cm-post-responder" onClick={() => setRespondendo((v) => !v)}>
           Responder
         </button>
+        <div className="cm-post-reacoes">
+          {REACOES.map((r) => (
+            <button key={r} type="button" onClick={() => reagir(r)} className="cm-post-reacao">
+              {r} {post.reacoes[r] > 0 && post.reacoes[r]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {post.respostas.length > 0 && (
@@ -175,6 +224,10 @@ export function Feed() {
     setPosts((atual) => (atual ?? []).map((p) => (p.id === post.id ? post : p)));
   }
 
+  function aoExcluirPost(id: string) {
+    setPosts((atual) => (atual ?? []).filter((p) => p.id !== id));
+  }
+
   return (
     <div className="cm-feed">
       <div className="cartao cm-feed-composer">
@@ -250,7 +303,7 @@ export function Feed() {
 
       {posts === null && <p className="carregando">Carregando…</p>}
       {posts?.map((p) => (
-        <PostItem key={p.id} post={p} onMudou={aoMudarPost} />
+        <PostItem key={p.id} post={p} onMudou={aoMudarPost} onExcluir={aoExcluirPost} />
       ))}
     </div>
   );

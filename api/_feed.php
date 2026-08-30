@@ -138,6 +138,11 @@ function montarPost(mysqli $mysqli, int $id, string $emailAtual): ?array
         'reacoes' => $reacoes['reacoes'],
         'minhasReacoes' => $reacoes['minhasReacoes'],
         'respostas' => $respostas,
+        // Editar (texto/visibilidade) é só do dono; excluir também aceita
+        // orientador — reaproveita EMAILS_ORIENTADORES como "admin" por
+        // enquanto, já que `alunos` ainda não tem papel de admin de verdade.
+        'podeEditar' => $row['email'] === $emailAtual,
+        'podeExcluir' => $row['email'] === $emailAtual || ehOrientadorEmail($emailAtual),
         'criadoEm' => isoComOffset($row['created_at']),
     ];
 }
