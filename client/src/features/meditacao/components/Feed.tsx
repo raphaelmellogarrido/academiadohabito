@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Bold, Italic, Smile, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
+import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
 import { meditacaoApi, type Humor, type Post } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
-import { VisibilidadeIcone } from "./VisibilidadeIcone";
+import { ComentarioBloco } from "./ComentarioBloco";
 
 const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; tag?: string }> = {
   publico: { icone: "🌍", texto: "Visível para toda comunidade — sua experiência pode acolher outra pessoa" },
@@ -10,7 +10,6 @@ const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; t
   orientador: { icone: "💬", texto: "Apenas orientadores verão — receba um acolhimento privado", tag: "PRIVADO · ACOLHIMENTO" },
 };
 
-const REACOES: ("🙏" | "❤️" | "🔥")[] = ["🙏", "❤️", "🔥"];
 const LIMITE_TEXTO = 140;
 
 const HUMORES: { valor: Humor; label: string }[] = [
@@ -21,124 +20,6 @@ const HUMORES: { valor: Humor; label: string }[] = [
 ];
 
 const EMOJIS = ["😊", "😌", "😢", "😴", "🙏", "❤️", "🔥", "🌱", "🪷", "✨", "💪", "🧘", "👍", "🎉", "☀️", "🌙", "💧", "🍃"];
-
-function PostItem({ post, onMudou, onExcluir }: { post: Post; onMudou: (p: Post) => void; onExcluir: (id: string) => void }) {
-  const [respondendo, setRespondendo] = useState(false);
-  const [textoResposta, setTextoResposta] = useState("");
-  const [editando, setEditando] = useState(false);
-  const [textoEdicao, setTextoEdicao] = useState(post.texto);
-
-  async function reagir(reacao: "🙏" | "❤️" | "🔥") {
-    const r = await meditacaoApi.reagir(post.id, reacao);
-    onMudou(r.post);
-  }
-
-  async function enviarResposta() {
-    if (!textoResposta.trim()) return;
-    const r = await meditacaoApi.responder(post.id, textoResposta);
-    onMudou(r.post);
-    setTextoResposta("");
-    setRespondendo(false);
-  }
-
-  async function alterarVisibilidade(nova: Visibilidade) {
-    const r = await meditacaoApi.alterarVisibilidadePost(post.id, nova);
-    onMudou(r.post);
-  }
-
-  function comecarEdicao() {
-    setTextoEdicao(post.texto);
-    setEditando(true);
-  }
-
-  async function salvarEdicao() {
-    if (!textoEdicao.trim()) return;
-    const r = await meditacaoApi.editarPost(post.id, textoEdicao.trim());
-    onMudou(r.post);
-    setEditando(false);
-  }
-
-  async function excluir() {
-    await meditacaoApi.excluirPost(post.id);
-    onExcluir(post.id);
-  }
-
-  return (
-    <div className="cm-post">
-      <div className="cm-post-cabecalho">
-        <div className="cm-post-avatar">{post.nome.slice(0, 1).toUpperCase()}</div>
-        <div className="cm-post-cabecalho-topo">
-          <div>
-            <strong>{post.nome}</strong>
-            <span className="cm-post-quando">
-              {new Date(post.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
-            </span>
-          </div>
-          <div className="cm-comentario-icones">
-            <VisibilidadeIcone valor={post.visibilidade} podeAlterar={post.podeEditar} onAlterar={alterarVisibilidade} />
-            {post.podeEditar && (
-              <button type="button" className="cm-comentario-editar" onClick={comecarEdicao} title="Editar">
-                <Pencil size={13} />
-              </button>
-            )}
-            {post.podeExcluir && (
-              <button type="button" className="cm-comentario-excluir" onClick={excluir} title="Excluir">
-                <Trash2 size={13} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {editando ? (
-        <div className="cm-post-resposta-form">
-          <input value={textoEdicao} maxLength={LIMITE_TEXTO} onChange={(e) => setTextoEdicao(e.target.value)} onKeyDown={(e) => e.key === "Enter" && salvarEdicao()} />
-          <button type="button" onClick={salvarEdicao}>
-            Salvar
-          </button>
-          <button type="button" className="cm-post-edicao-cancelar" onClick={() => setEditando(false)}>
-            Cancelar
-          </button>
-        </div>
-      ) : (
-        <p className="cm-post-texto">{post.texto}</p>
-      )}
-      {post.foto && <img src={post.foto} alt="" className="cm-post-foto" />}
-
-      <div className="cm-post-acoes">
-        <button type="button" className="cm-post-responder" onClick={() => setRespondendo((v) => !v)}>
-          Responder
-        </button>
-        <div className="cm-post-reacoes">
-          {REACOES.map((r) => (
-            <button key={r} type="button" onClick={() => reagir(r)} className="cm-post-reacao">
-              {r} {post.reacoes[r] > 0 && post.reacoes[r]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {post.respostas.length > 0 && (
-        <ul className="cm-post-respostas">
-          {post.respostas.map((r) => (
-            <li key={r.id}>
-              <strong>{r.nome}:</strong> {r.texto}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {respondendo && (
-        <div className="cm-post-resposta-form">
-          <input value={textoResposta} onChange={(e) => setTextoResposta(e.target.value)} placeholder="Escreva uma resposta…" onKeyDown={(e) => e.key === "Enter" && enviarResposta()} />
-          <button type="button" onClick={enviarResposta}>
-            Enviar
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function Feed() {
   const [posts, setPosts] = useState<Post[] | null>(null);
@@ -228,6 +109,41 @@ export function Feed() {
     setPosts((atual) => (atual ?? []).filter((p) => p.id !== id));
   }
 
+  // Callbacks genéricos passados pro ComentarioBloco — `id` pode ser o post
+  // raiz ou qualquer resposta dele em qualquer profundidade; o servidor
+  // resolve a raiz e devolve a árvore inteira já atualizada, que aqui
+  // substitui o post certo na lista top-level (mesma chave: raiz.id).
+  async function aoReagir(id: string, reacao: "🙏" | "❤️" | "🔥") {
+    const r = await meditacaoApi.reagir(id, reacao);
+    aoMudarPost(r.post);
+  }
+
+  async function aoResponder(id: string, texto: string) {
+    const r = await meditacaoApi.responder(id, texto);
+    aoMudarPost(r.post);
+  }
+
+  async function aoEditar(id: string, texto: string) {
+    const r = await meditacaoApi.editarPost(id, texto);
+    aoMudarPost(r.post);
+  }
+
+  async function aoAlterarVisibilidade(id: string, visibilidade: Visibilidade) {
+    const r = await meditacaoApi.alterarVisibilidadePost(id, visibilidade);
+    aoMudarPost(r.post);
+  }
+
+  // Apagar a raiz remove o post inteiro da lista; apagar uma resposta
+  // aninhada substitui o post pela árvore restante (sem essa resposta).
+  async function aoExcluir(id: string) {
+    const r = await meditacaoApi.excluirPost(id);
+    if (r.raiz === null) {
+      aoExcluirPost(r.raizId);
+    } else {
+      aoMudarPost(r.raiz);
+    }
+  }
+
   return (
     <div className="cm-feed">
       <div className="cartao cm-feed-composer">
@@ -303,7 +219,16 @@ export function Feed() {
 
       {posts === null && <p className="carregando">Carregando…</p>}
       {posts?.map((p) => (
-        <PostItem key={p.id} post={p} onMudou={aoMudarPost} onExcluir={aoExcluirPost} />
+        <ComentarioBloco
+          key={p.id}
+          no={p}
+          nivel={0}
+          onReagir={aoReagir}
+          onResponder={aoResponder}
+          onEditar={aoEditar}
+          onAlterarVisibilidade={aoAlterarVisibilidade}
+          onExcluir={aoExcluir}
+        />
       ))}
     </div>
   );

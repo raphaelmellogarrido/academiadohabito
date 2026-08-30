@@ -1,107 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
-import { meditacaoApi, type AulaComentario, type Visibilidade } from "../api/meditacaoApi";
+import { Image as ImageIcon } from "lucide-react";
+import { meditacaoApi, type Visibilidade } from "../api/meditacaoApi";
 import { useAulaComentarios } from "../hooks/useAulaComentarios";
-import { VisibilidadeIcone } from "./VisibilidadeIcone";
+import { ComentarioBloco } from "./ComentarioBloco";
 
-const REACOES: ("🙏" | "❤️" | "🔥")[] = ["🙏", "❤️", "🔥"];
 const LIMITE_TEXTO = 140;
-
-function ComentarioItem({
-  comentario,
-  onReagir,
-  onExcluir,
-  onResponder,
-}: {
-  comentario: AulaComentario;
-  onReagir: (c: AulaComentario) => void;
-  onExcluir: (id: string) => void;
-  onResponder: (nome: string) => void;
-}) {
-  const [editando, setEditando] = useState(false);
-  const [textoEdicao, setTextoEdicao] = useState(comentario.texto);
-
-  async function reagir(reacao: "🙏" | "❤️" | "🔥") {
-    const r = await meditacaoApi.aulasReagir(comentario.id, reacao);
-    onReagir(r.comentario);
-  }
-
-  async function alterarVisibilidade(nova: Visibilidade) {
-    const r = await meditacaoApi.aulasAlterarVisibilidadeComentario(comentario.id, nova);
-    onReagir(r.comentario);
-  }
-
-  function comecarEdicao() {
-    setTextoEdicao(comentario.texto);
-    setEditando(true);
-  }
-
-  async function salvarEdicao() {
-    if (!textoEdicao.trim()) return;
-    const r = await meditacaoApi.aulasEditarComentario(comentario.id, textoEdicao.trim());
-    onReagir(r.comentario);
-    setEditando(false);
-  }
-
-  async function excluir() {
-    await meditacaoApi.aulasExcluirComentario(comentario.id);
-    onExcluir(comentario.id);
-  }
-
-  return (
-    <li className={`cm-comentario-item ${comentario.admin ? "is-admin" : ""}`}>
-      <div className="cm-post-avatar">{comentario.nome.slice(0, 1).toUpperCase()}</div>
-      <div className="cm-comentario-corpo">
-        <div className="cm-comentario-topo">
-          <p className="cm-comentario-autor">
-            {comentario.nome}
-            {comentario.admin && <span className="cm-badge-admin">ADMINISTRADOR</span>}
-            <span> • Dia {comentario.diaAtual}</span>
-          </p>
-          <div className="cm-comentario-icones">
-            <VisibilidadeIcone valor={comentario.visibilidade} podeAlterar={comentario.podeEditar} onAlterar={alterarVisibilidade} />
-            {comentario.podeEditar && (
-              <button type="button" className="cm-comentario-editar" onClick={comecarEdicao} title="Editar">
-                <Pencil size={13} />
-              </button>
-            )}
-            {comentario.podeExcluir && (
-              <button type="button" className="cm-comentario-excluir" onClick={excluir} title="Excluir">
-                <Trash2 size={13} />
-              </button>
-            )}
-          </div>
-        </div>
-        {editando ? (
-          <div className="cm-post-resposta-form">
-            <input value={textoEdicao} maxLength={LIMITE_TEXTO} onChange={(e) => setTextoEdicao(e.target.value)} onKeyDown={(e) => e.key === "Enter" && salvarEdicao()} />
-            <button type="button" onClick={salvarEdicao}>
-              Salvar
-            </button>
-            <button type="button" className="cm-post-edicao-cancelar" onClick={() => setEditando(false)}>
-              Cancelar
-            </button>
-          </div>
-        ) : (
-          <p className="cm-comentario-texto">{comentario.texto}</p>
-        )}
-        {comentario.foto && <img src={comentario.foto} alt="" className="cm-comentario-foto" />}
-        <div className="cm-post-acoes">
-          <button type="button" className="cm-post-responder" onClick={() => onResponder(comentario.nome)}>
-            Responder
-          </button>
-          <div className="cm-post-reacoes">
-            {REACOES.map((r) => (
-              <button key={r} type="button" onClick={() => reagir(r)} className="cm-post-reacao">
-                {r} {comentario.reacoes[r] > 0 && comentario.reacoes[r]}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </li>
-  );
-}
 
 export function ComentariosAulas() {
   const {
@@ -112,7 +15,7 @@ export function ComentariosAulas() {
     carregarMais,
     adicionarComentario,
     atualizarComentario,
-    removerComentario,
+    excluirNoComentario,
   } = useAulaComentarios();
   const [texto, setTexto] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
@@ -143,11 +46,6 @@ export function ComentariosAulas() {
     leitor.readAsDataURL(arquivo);
   }
 
-  function responder(nome: string) {
-    setTexto((t) => (t.startsWith(`@${nome} `) ? t : `@${nome} ${t}`));
-    textareaRef.current?.focus();
-  }
-
   async function enviar() {
     if (!texto.trim() && !foto) return;
     setEnviando(true);
@@ -160,6 +58,37 @@ export function ComentariosAulas() {
     } finally {
       setEnviando(false);
     }
+  }
+
+  // Callbacks genéricos passados pro ComentarioBloco — `id` pode ser o
+  // comentário raiz ou qualquer resposta dele em qualquer profundidade; o
+  // servidor resolve a raiz e devolve a árvore inteira já atualizada, que
+  // aqui substitui o comentário certo na lista (mesma chave: raiz.id).
+  async function aoReagir(id: string, reacao: "🙏" | "❤️" | "🔥") {
+    const r = await meditacaoApi.aulasReagir(id, reacao);
+    atualizarComentario(r.comentario);
+  }
+
+  async function aoResponder(id: string, texto: string) {
+    const r = await meditacaoApi.aulasResponder(id, texto);
+    atualizarComentario(r.comentario);
+  }
+
+  async function aoEditar(id: string, texto: string) {
+    const r = await meditacaoApi.aulasEditarComentario(id, texto);
+    atualizarComentario(r.comentario);
+  }
+
+  async function aoAlterarVisibilidade(id: string, visibilidade: Visibilidade) {
+    const r = await meditacaoApi.aulasAlterarVisibilidadeComentario(id, visibilidade);
+    atualizarComentario(r.comentario);
+  }
+
+  // Apagar a raiz remove o comentário inteiro da lista; apagar uma resposta
+  // aninhada substitui pela árvore restante (sem essa resposta).
+  async function aoExcluir(id: string) {
+    const r = await meditacaoApi.aulasExcluirComentario(id);
+    excluirNoComentario(r.raizId, r.raiz);
   }
 
   return (
@@ -189,17 +118,21 @@ export function ComentariosAulas() {
 
       {carregando && <p className="carregando">Carregando…</p>}
 
-      <ul className="cm-comentarios-lista">
+      <div className="cm-comentarios-lista">
         {comentarios.map((c) => (
-          <ComentarioItem
+          <ComentarioBloco
             key={c.id}
-            comentario={c}
-            onReagir={atualizarComentario}
-            onExcluir={removerComentario}
-            onResponder={responder}
+            no={c}
+            nivel={0}
+            badge={<span className="cm-comentario-dia"> • Dia {c.diaAtual}</span>}
+            onReagir={aoReagir}
+            onResponder={aoResponder}
+            onEditar={aoEditar}
+            onAlterarVisibilidade={aoAlterarVisibilidade}
+            onExcluir={aoExcluir}
           />
         ))}
-      </ul>
+      </div>
 
       <div ref={sentinelaRef} />
       {carregandoMais && <p className="carregando">Carregando mais…</p>}

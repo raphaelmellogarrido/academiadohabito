@@ -88,52 +88,79 @@ function montarReacoesEmLote(mysqli $mysqli, array $ids, string $emailAtual): ar
     return $out;
 }
 
-// Reconstrói 1 post completo (raiz + respostas + reações) pelo id — usado
-// por feed-reagir.php/feed-responder.php depois de mutar uma linha, sem
-// precisar devolver a lista inteira do feed.
-function montarPost(mysqli $mysqli, int $id, string $emailAtual): ?array
+// Sobe a cadeia parent_id até achar a raiz (parent_id IS NULL) de qualquer
+// nó da thread — usado por todo endpoint que agora pode agir sobre uma
+// resposta em vez de só o post raiz (reagir/editar/visibilidade/responder),
+// pra sempre validar visibilidade/dono contra a raiz, não contra o nó em si.
+// Limite de 50 saltos é só proteção contra dado corrompido (ciclo), threads
+// reais nunca chegam nem perto disso.
+function raizDoId(mysqli $mysqli, int $id): ?int
 {
-    $stmt = $mysqli->prepare(
-        "SELECT id, email, nome, comentario, image_mime, visibilidade, created_at
-         FROM comentarios WHERE id = ? AND parent_id IS NULL"
-    );
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!$row) {
-        return null;
+    $atual = $id;
+    for ($i = 0; $i < 50; $i++) {
+        $stmt = $mysqli->prepare("SELECT id, parent_id FROM comentarios WHERE id = ?");
+        $stmt->bind_param('i', $atual);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$row) {
+            return null;
+        }
+        if ($row['parent_id'] === null) {
+            return (int) $row['id'];
+        }
+        $atual = (int) $row['parent_id'];
     }
+    return $atual;
+}
 
+// BFS por parent_id: todos os ids da subárvore de `$id`, incluindo ele mesmo
+// — usado só por excluir (feed-excluir.php/aulas-comentario-excluir.php) pra
+// apagar em cascata de verdade (reações + linhas) quando o nó tem respostas.
+function descendentes(mysqli $mysqli, int $id): array
+{
+    $ids = [$id];
+    $fronteira = [$id];
+    while ($fronteira) {
+        $placeholders = implode(',', array_fill(0, count($fronteira), '?'));
+        $tipos = str_repeat('i', count($fronteira));
+        $stmt = $mysqli->prepare("SELECT id FROM comentarios WHERE parent_id IN ($placeholders)");
+        $stmt->bind_param($tipos, ...$fronteira);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $prox = [];
+        while ($row = $res->fetch_assoc()) {
+            $prox[] = (int) $row['id'];
+        }
+        $stmt->close();
+        $ids = array_merge($ids, $prox);
+        $fronteira = $prox;
+    }
+    return $ids;
+}
+
+// Monta 1 nó da árvore (shape de NoComentario, sem `humor`/`diaAtual`, que
+// são só da raiz e ficam por conta de montarPost/montarAulaComentario) a
+// partir de dados já buscados em lote — nunca faz query aqui dentro.
+// `admin` fica sempre false: `alunos` ainda não tem papel de admin de
+// verdade, só EMAILS_ORIENTADORES (reaproveitado como "admin" só pra
+// podeExcluir, ver ehOrientadorEmail acima).
+function montarNoRecursivo(int $id, array $linhas, array $filhos, array $reacoesPorId, string $emailAtual): array
+{
+    $row = $linhas[$id];
+    $reacoes = $reacoesPorId[$id] ?? ['reacoes' => ['🙏' => 0, '❤️' => 0, '🔥' => 0], 'minhasReacoes' => []];
     $respostas = [];
-    $stmtResp = $mysqli->prepare(
-        "SELECT id, email, nome, comentario, created_at FROM comentarios
-         WHERE parent_id = ? ORDER BY created_at ASC, id ASC"
-    );
-    $stmtResp->bind_param('i', $id);
-    $stmtResp->execute();
-    $resResp = $stmtResp->get_result();
-    while ($r = $resResp->fetch_assoc()) {
-        $respostas[] = [
-            'id' => (string) $r['id'],
-            'userId' => $r['email'],
-            'nome' => $r['nome'] ?: 'Aluno',
-            'texto' => $r['comentario'],
-            'criadoEm' => isoComOffset($r['created_at']),
-        ];
+    foreach (($filhos[$id] ?? []) as $filhoId) {
+        $respostas[] = montarNoRecursivo($filhoId, $linhas, $filhos, $reacoesPorId, $emailAtual);
     }
-    $stmtResp->close();
-
-    $reacoes = montarReacoesEmLote($mysqli, [(int) $row['id']], $emailAtual)[(int) $row['id']];
-
     return [
-        'id' => (string) $row['id'],
+        'id' => (string) $id,
         'userId' => $row['email'],
         'nome' => $row['nome'] ?: 'Aluno',
         'avatarUrl' => null, // avatar real fica pra quando esse card entrar (mesmo estado de alunoParaUsuario())
+        'admin' => false,
         'texto' => $row['comentario'],
-        'humor' => null, // não existe coluna real pra humor, e o mock também nunca renderiza esse campo no post
-        'foto' => $row['image_mime'] ? ('/api/imagem-comentario.php?id=' . $row['id']) : null,
+        'foto' => $row['image_mime'] ? ('/api/imagem-comentario.php?id=' . $id) : null,
         'visibilidade' => $row['visibilidade'] ?: 'publico',
         'reacoes' => $reacoes['reacoes'],
         'minhasReacoes' => $reacoes['minhasReacoes'],
@@ -145,4 +172,82 @@ function montarPost(mysqli $mysqli, int $id, string $emailAtual): ?array
         'podeExcluir' => $row['email'] === $emailAtual || ehOrientadorEmail($emailAtual),
         'criadoEm' => isoComOffset($row['created_at']),
     ];
+}
+
+// Reconstrói a árvore inteira (raiz + respostas em qualquer profundidade +
+// reações, tudo batched) a partir de QUALQUER id da thread — resolve a raiz
+// primeiro via raizDoId, então já devolve o nó certo mesmo se `$anyId` for
+// uma resposta aninhada. Compartilhado por montarPost (feed) e
+// montarAulaComentario (_aulas.php), que só empilham `humor`/`diaAtual` por
+// cima do nó raiz devolvido aqui.
+function montarArvoreComentario(mysqli $mysqli, int $anyId, string $emailAtual): ?array
+{
+    $raizId = raizDoId($mysqli, $anyId);
+    if ($raizId === null) {
+        return null;
+    }
+
+    $stmt = $mysqli->prepare(
+        "SELECT id, email, nome, comentario, image_mime, visibilidade, created_at
+         FROM comentarios WHERE id = ?"
+    );
+    $stmt->bind_param('i', $raizId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) {
+        return null;
+    }
+
+    $linhas = [$raizId => $row];
+    $filhos = [];
+
+    // BFS nível a nível: uma query por profundidade da thread, não por nó.
+    $fronteira = [$raizId];
+    while ($fronteira) {
+        $placeholders = implode(',', array_fill(0, count($fronteira), '?'));
+        $tipos = str_repeat('i', count($fronteira));
+        $stmt = $mysqli->prepare(
+            "SELECT id, email, nome, comentario, image_mime, visibilidade, created_at, parent_id
+             FROM comentarios WHERE parent_id IN ($placeholders)
+             ORDER BY created_at ASC, id ASC"
+        );
+        $stmt->bind_param($tipos, ...$fronteira);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $prox = [];
+        while ($r = $res->fetch_assoc()) {
+            $id = (int) $r['id'];
+            $linhas[$id] = $r;
+            $pid = (int) $r['parent_id'];
+            $filhos[$pid][] = $id;
+            $prox[] = $id;
+        }
+        $stmt->close();
+        $fronteira = $prox;
+    }
+
+    $ids = array_map('intval', array_keys($linhas));
+    $reacoesPorId = montarReacoesEmLote($mysqli, $ids, $emailAtual);
+
+    return montarNoRecursivo($raizId, $linhas, $filhos, $reacoesPorId, $emailAtual);
+}
+
+// Reconstrói 1 post completo (árvore inteira, raiz + respostas em qualquer
+// profundidade) a partir de QUALQUER id da thread — usado por
+// feed-reagir.php/feed-responder.php/etc depois de mutar uma linha, sem
+// precisar devolver a lista inteira do feed. Aceita tanto o id da raiz
+// quanto de uma resposta (resolve a raiz internamente via
+// montarArvoreComentario), então nenhum call site que já passava a raiz
+// precisa mudar.
+function montarPost(mysqli $mysqli, int $anyId, string $emailAtual): ?array
+{
+    $arvore = montarArvoreComentario($mysqli, $anyId, $emailAtual);
+    if ($arvore === null) {
+        return null;
+    }
+    // não existe coluna real pra humor, e o mock também nunca renderiza esse
+    // campo fora do post raiz
+    $arvore['humor'] = null;
+    return $arvore;
 }

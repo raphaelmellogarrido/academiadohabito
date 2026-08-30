@@ -1,7 +1,9 @@
 <?php
-// PUT /api/feed-editar.php — real de PUT /meditacao/feed/:id. Editar texto é
-// sempre só do dono, sem bypass de orientador/admin (mesmo contrato do mock
-// em editarPost/community.store.ts). Ver _feed.php pro shape de Post.
+// PUT /api/feed-editar.php — real de PUT /meditacao/feed/:id. `id` pode ser o
+// post raiz ou qualquer resposta dele em qualquer profundidade. Editar texto
+// é sempre só do dono DAQUELE nó específico, sem bypass de orientador/admin
+// (mesmo contrato do mock em editarPost/community.store.ts). Ver _feed.php
+// pro shape de Post.
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
 header('Access-Control-Allow-Methods: PUT, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
@@ -31,7 +33,7 @@ if (mb_strlen($texto) > 140) {
     $texto = mb_substr($texto, 0, 140);
 }
 
-$stmt = $mysqli->prepare("SELECT email FROM comentarios WHERE id = ? AND parent_id IS NULL");
+$stmt = $mysqli->prepare("SELECT email FROM comentarios WHERE id = ?");
 $stmt->bind_param('i', $id);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();

@@ -28,14 +28,22 @@ if ($id <= 0 || !in_array($reacao, ['🙏', '❤️', '🔥'], true)) {
     exit;
 }
 
-// Só reage a um post que existe e que o aluno atual pode ver (mesma
-// condição de visibilidade do feed.php) — sem isso dava pra reagir (e assim
-// ler o conteúdo de volta na resposta) a um post privado de outra pessoa.
+// `id` pode ser o post raiz ou qualquer resposta dele em qualquer
+// profundidade — a visibilidade é sempre checada contra a RAIZ da thread
+// (mesma condição de visibilidade do feed.php), nunca contra o nó em si, sem
+// isso dava pra reagir (e assim ler o conteúdo de volta na resposta) a uma
+// thread privada de outra pessoa.
+$raizId = raizDoId($mysqli, $id);
+if ($raizId === null) {
+    http_response_code(404);
+    echo json_encode(['ok' => false, 'erro' => 'post não encontrado']);
+    exit;
+}
 $souOrientador = ehOrientadorEmail($email) ? 1 : 0;
 $stmtVisivel = $mysqli->prepare(
-    "SELECT id FROM comentarios WHERE id = ? AND parent_id IS NULL AND " . condVisibilidadeSql()
+    "SELECT id FROM comentarios WHERE id = ? AND " . condVisibilidadeSql()
 );
-$stmtVisivel->bind_param('isi', $id, $email, $souOrientador);
+$stmtVisivel->bind_param('isi', $raizId, $email, $souOrientador);
 $stmtVisivel->execute();
 $visivel = $stmtVisivel->get_result()->fetch_assoc();
 $stmtVisivel->close();

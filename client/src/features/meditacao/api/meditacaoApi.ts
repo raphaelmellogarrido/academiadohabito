@@ -67,21 +67,28 @@ export type Humor = "calma" | "agitada" | "cansada" | "foco";
 // postou + admins (ver EMAILS_ORIENTADORES em community.store.ts/_feed.php).
 export type Visibilidade = "publico" | "privado" | "orientador";
 
-export interface Post {
+// Um nó de comentário/resposta — post raiz e respostas (em qualquer profundidade)
+// compartilham exatamente esse shape, já que agora é possível responder tanto ao
+// post quanto a uma resposta (thread recursiva, sem limite de nível).
+export interface NoComentario {
   id: string;
   userId: string;
   nome: string;
   avatarUrl: string | null;
+  admin: boolean;
   texto: string;
-  humor: Humor | null;
   foto: string | null;
   visibilidade: Visibilidade;
   reacoes: Record<"🙏" | "❤️" | "🔥", number>;
   minhasReacoes: Record<string, string[]>;
-  respostas: { id: string; userId: string; nome: string; texto: string; criadoEm: string }[];
+  respostas: NoComentario[];
   podeEditar: boolean;
   podeExcluir: boolean;
   criadoEm: string;
+}
+
+export interface Post extends NoComentario {
+  humor: Humor | null;
 }
 
 export interface AulaProgresso {
@@ -95,20 +102,8 @@ export interface AulaProgresso {
   percentual: number;
 }
 
-export interface AulaComentario {
-  id: string;
-  userId: string;
-  nome: string;
-  admin: boolean;
+export interface AulaComentario extends NoComentario {
   diaAtual: number;
-  texto: string;
-  foto: string | null;
-  visibilidade: Visibilidade;
-  reacoes: Record<"🙏" | "❤️" | "🔥", number>;
-  minhasReacoes: Record<string, string[]>;
-  podeEditar: boolean;
-  podeExcluir: boolean;
-  criadoEm: string;
 }
 
 export const meditacaoApi = {
@@ -166,22 +161,26 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.post<{ ok: true; post: Post }>("/feed-reagir.php", { id: postId, reacao })
       : api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/reagir`, { reacao }),
-  responder: (postId: string, texto: string) =>
+  // `id` pode ser o post raiz ou qualquer resposta dele em qualquer profundidade —
+  // o servidor resolve a raiz internamente e devolve a árvore inteira atualizada.
+  responder: (id: string, texto: string) =>
     ehProducaoReal
-      ? api.post<{ ok: true; post: Post }>("/feed-responder.php", { id: postId, texto })
-      : api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/responder`, { texto }),
-  editarPost: (postId: string, texto: string) =>
+      ? api.post<{ ok: true; post: Post }>("/feed-responder.php", { id, texto })
+      : api.post<{ ok: true; post: Post }>(`/meditacao/feed/${id}/responder`, { texto }),
+  editarPost: (id: string, texto: string) =>
     ehProducaoReal
-      ? api.put<{ ok: true; post: Post }>("/feed-editar.php", { id: postId, texto })
-      : api.put<{ ok: true; post: Post }>(`/meditacao/feed/${postId}`, { texto }),
-  alterarVisibilidadePost: (postId: string, visibilidade: Visibilidade) =>
+      ? api.put<{ ok: true; post: Post }>("/feed-editar.php", { id, texto })
+      : api.put<{ ok: true; post: Post }>(`/meditacao/feed/${id}`, { texto }),
+  alterarVisibilidadePost: (id: string, visibilidade: Visibilidade) =>
     ehProducaoReal
-      ? api.put<{ ok: true; post: Post }>("/feed-visibilidade.php", { id: postId, visibilidade })
-      : api.put<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/visibilidade`, { visibilidade }),
-  excluirPost: (postId: string) =>
+      ? api.put<{ ok: true; post: Post }>("/feed-visibilidade.php", { id, visibilidade })
+      : api.put<{ ok: true; post: Post }>(`/meditacao/feed/${id}/visibilidade`, { visibilidade }),
+  // Apagar a raiz derruba a thread inteira (raiz: null, client remove da lista);
+  // apagar uma resposta aninhada devolve a árvore restante (client substitui pelo raizId).
+  excluirPost: (id: string) =>
     ehProducaoReal
-      ? api.delete<{ ok: true }>(`/feed-excluir.php?id=${postId}`)
-      : api.delete<{ ok: true }>(`/meditacao/feed/${postId}`),
+      ? api.delete<{ ok: true; raizId: string; raiz: Post | null }>(`/feed-excluir.php?id=${id}`)
+      : api.delete<{ ok: true; raizId: string; raiz: Post | null }>(`/meditacao/feed/${id}`),
 
   aulasProgresso: () =>
     ehProducaoReal
@@ -211,10 +210,15 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-reagir.php", { id, reacao })
       : api.post<{ ok: true; comentario: AulaComentario }>(`/meditacao/aulas/comentarios/${id}/reagir`, { reacao }),
+  // `id` pode ser o comentário raiz ou qualquer resposta dele — mesmo contrato de responder/excluirPost acima.
+  aulasResponder: (id: string, texto: string) =>
+    ehProducaoReal
+      ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-responder.php", { id, texto })
+      : api.post<{ ok: true; comentario: AulaComentario }>(`/meditacao/aulas/comentarios/${id}/responder`, { texto }),
   aulasExcluirComentario: (id: string) =>
     ehProducaoReal
-      ? api.delete<{ ok: true }>(`/aulas-comentario-excluir.php?id=${id}`)
-      : api.delete<{ ok: true }>(`/meditacao/aulas/comentarios/${id}`),
+      ? api.delete<{ ok: true; raizId: string; raiz: AulaComentario | null }>(`/aulas-comentario-excluir.php?id=${id}`)
+      : api.delete<{ ok: true; raizId: string; raiz: AulaComentario | null }>(`/meditacao/aulas/comentarios/${id}`),
   aulasEditarComentario: (id: string, texto: string) =>
     ehProducaoReal
       ? api.put<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-editar.php", { id, texto })

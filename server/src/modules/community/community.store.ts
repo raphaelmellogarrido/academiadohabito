@@ -4,11 +4,21 @@ import { ehOrientador } from "../auth/auth.service.js";
 // --- Feed (Dificuldade do dia / "o que sentiu na prática") -----------------
 export type Reacao = "🙏" | "❤️" | "🔥";
 
-export interface Resposta {
+// Post raiz e respostas (em qualquer profundidade) compartilham o mesmo shape —
+// dá pra responder tanto ao post quanto a uma resposta, thread recursiva sem
+// limite de nível (mesmo modelo do `parent_id` genérico usado no PHP real).
+export interface NoComentario {
   id: string;
   userId: string;
   nome: string;
+  avatarUrl: string | null;
+  admin: boolean;
   texto: string;
+  foto: string | null;
+  visibilidade: Visibilidade;
+  reacoes: Record<Reacao, number>;
+  minhasReacoes: Record<string, Reacao[]>; // userId -> reações que já deu neste nó
+  respostas: NoComentario[];
   criadoEm: string;
 }
 
@@ -18,30 +28,54 @@ export type Humor = "calma" | "agitada" | "cansada" | "foco";
 // postou + ehOrientador(email) (ver auth.service.ts).
 export type Visibilidade = "publico" | "privado" | "orientador";
 
-export interface Post {
-  id: string;
-  userId: string;
-  nome: string;
-  avatarUrl: string | null;
-  texto: string;
+export interface Post extends NoComentario {
   humor: Humor | null;
-  foto: string | null;
-  visibilidade: Visibilidade;
-  reacoes: Record<Reacao, number>;
-  minhasReacoes: Record<string, Reacao[]>; // userId -> reações que já deu neste post
-  respostas: Resposta[];
-  criadoEm: string;
 }
 
 // Shape devolvido ao client, com as permissões calculadas pro usuário que
 // está pedindo — mesmo padrão de paraCliente() em aulas.comentarios.ts.
-// Editar visibilidade/texto é só do dono; excluir também aceita admin.
-function paraClientePost(post: Post, usuarioAtual: { id: string; admin: boolean }) {
+// Editar visibilidade/texto é só do dono; excluir também aceita admin. Aplica
+// recursivamente em cada resposta, não só na raiz.
+function paraClienteNo<T extends NoComentario>(no: T, usuarioAtual: { id: string; admin: boolean }): T {
   return {
-    ...post,
-    podeEditar: post.userId === usuarioAtual.id,
-    podeExcluir: post.userId === usuarioAtual.id || usuarioAtual.admin,
+    ...no,
+    respostas: no.respostas.map((r) => paraClienteNo(r, usuarioAtual)),
+    podeEditar: no.userId === usuarioAtual.id,
+    podeExcluir: no.userId === usuarioAtual.id || usuarioAtual.admin,
   };
+}
+
+function paraClientePost(post: Post, usuarioAtual: { id: string; admin: boolean }) {
+  return paraClienteNo(post, usuarioAtual);
+}
+
+// Acha um nó (raiz ou resposta em qualquer profundidade) por id dentro de um post — usado
+// por reagir/editar/visibilidade/responder/excluir, que agora podem mirar qualquer nó da árvore.
+function encontrarNo(post: Post, id: string): NoComentario | null {
+  if (post.id === id) return post;
+  function buscar(lista: NoComentario[]): NoComentario | null {
+    for (const no of lista) {
+      if (no.id === id) return no;
+      const achado = buscar(no.respostas);
+      if (achado) return achado;
+    }
+    return null;
+  }
+  return buscar(post.respostas);
+}
+
+// Acha o pai direto de um nó (por id) dentro de um post — usado só por excluirPost
+// pra saber de qual array `respostas` fazer o splice quando o nó não é a raiz.
+function encontrarPai(post: Post, id: string): NoComentario | Post | null {
+  function buscar(pai: NoComentario | Post): NoComentario | Post | null {
+    for (const filho of pai.respostas) {
+      if (filho.id === id) return pai;
+      const achado = buscar(filho);
+      if (achado) return achado;
+    }
+    return null;
+  }
+  return buscar(post);
 }
 
 // Único ponto que decide se `usuarioAtual` pode ver `post` — usado tanto pra
@@ -64,6 +98,7 @@ const FEED: Post[] = [
     userId: "demo",
     nome: "Raphael Silva",
     avatarUrl: null,
+    admin: false,
     texto: "Hoje a mente estava agitada, mas os 10 minutos valeram cada segundo. 🙏",
     humor: "agitada",
     foto: null,
@@ -74,6 +109,14 @@ const FEED: Post[] = [
     criadoEm: new Date().toISOString(),
   },
 ];
+
+// Acha o post raiz (no array top-level FEED) que contém o nó `id`, seja ele a
+// própria raiz ou uma resposta em qualquer profundidade — usado por
+// reagir/responder/editarPost/alterarVisibilidade/excluirPost, que agora
+// podem mirar qualquer nó da thread, não só o post.
+function encontrarPostDoNo(id: string): Post | null {
+  return FEED.find((p) => encontrarNo(p, id) !== null) ?? null;
+}
 
 export function listarFeed(usuarioAtual: { id: string; email: string; admin: boolean }) {
   return [...FEED]
@@ -94,6 +137,7 @@ export function criarPost(
     userId: usuario.id,
     nome: usuario.nome,
     avatarUrl: usuario.avatarUrl,
+    admin: usuario.admin,
     texto: texto.slice(0, 140),
     humor,
     foto,
@@ -107,60 +151,85 @@ export function criarPost(
   return paraClientePost(post, usuario);
 }
 
-export function reagir(postId: string, usuarioAtual: { id: string; email: string; admin: boolean }, reacao: Reacao) {
-  const post = FEED.find((p) => p.id === postId);
+export function reagir(id: string, usuarioAtual: { id: string; email: string; admin: boolean }, reacao: Reacao) {
+  const post = encontrarPostDoNo(id);
   if (!post || !podeVerPost(post, usuarioAtual)) return null;
+  const no = encontrarNo(post, id)!;
   const userId = usuarioAtual.id;
-  const minhas = post.minhasReacoes[userId] ?? [];
+  const minhas = no.minhasReacoes[userId] ?? [];
   if (minhas.includes(reacao)) {
-    post.reacoes[reacao] = Math.max(0, post.reacoes[reacao] - 1);
-    post.minhasReacoes[userId] = minhas.filter((r) => r !== reacao);
+    no.reacoes[reacao] = Math.max(0, no.reacoes[reacao] - 1);
+    no.minhasReacoes[userId] = minhas.filter((r) => r !== reacao);
   } else {
-    post.reacoes[reacao] += 1;
-    post.minhasReacoes[userId] = [...minhas, reacao];
+    no.reacoes[reacao] += 1;
+    no.minhasReacoes[userId] = [...minhas, reacao];
   }
   return paraClientePost(post, usuarioAtual);
 }
 
-export function responder(postId: string, usuario: { id: string; nome: string; email: string; admin: boolean }, texto: string) {
-  const post = FEED.find((p) => p.id === postId);
+// `id` é o nó (post ou resposta em qualquer profundidade) que está sendo
+// respondido — a nova resposta entra em `no.respostas`, recursivo sem limite.
+export function responder(id: string, usuario: { id: string; nome: string; email: string; admin: boolean }, texto: string) {
+  const post = encontrarPostDoNo(id);
   if (!post || !podeVerPost(post, usuario)) return null;
-  const resposta: Resposta = {
+  const no = encontrarNo(post, id)!;
+  const resposta: NoComentario = {
     id: proximoId(),
     userId: usuario.id,
     nome: usuario.nome,
-    texto: texto.slice(0, 280),
+    avatarUrl: null,
+    admin: usuario.admin,
+    texto: texto.slice(0, 140),
+    foto: null,
+    visibilidade: "publico",
+    reacoes: { "🙏": 0, "❤️": 0, "🔥": 0 },
+    minhasReacoes: {},
+    respostas: [],
     criadoEm: new Date().toISOString(),
   };
-  post.respostas.push(resposta);
+  no.respostas.push(resposta);
   return paraClientePost(post, usuario);
 }
 
 // Só o dono edita texto/visibilidade; excluir aceita dono OU admin (mesmo
-// contrato de excluirComentario em aulas.comentarios.ts).
-export function editarPost(postId: string, usuario: { id: string; admin: boolean }, texto: string) {
-  const post = FEED.find((p) => p.id === postId);
+// contrato de excluirComentario em aulas.comentarios.ts). Vale pra qualquer
+// nó da thread, não só a raiz.
+export function editarPost(id: string, usuario: { id: string; admin: boolean }, texto: string) {
+  const post = encontrarPostDoNo(id);
   if (!post) return "nao_encontrado" as const;
-  if (post.userId !== usuario.id) return "sem_permissao" as const;
-  post.texto = texto.slice(0, 140);
+  const no = encontrarNo(post, id)!;
+  if (no.userId !== usuario.id) return "sem_permissao" as const;
+  no.texto = texto.slice(0, 140);
   return paraClientePost(post, usuario);
 }
 
-export function alterarVisibilidade(postId: string, usuario: { id: string; admin: boolean }, visibilidade: Visibilidade) {
-  const post = FEED.find((p) => p.id === postId);
+export function alterarVisibilidade(id: string, usuario: { id: string; admin: boolean }, visibilidade: Visibilidade) {
+  const post = encontrarPostDoNo(id);
   if (!post) return "nao_encontrado" as const;
-  if (post.userId !== usuario.id) return "sem_permissao" as const;
-  post.visibilidade = visibilidade;
+  const no = encontrarNo(post, id)!;
+  if (no.userId !== usuario.id) return "sem_permissao" as const;
+  no.visibilidade = visibilidade;
   return paraClientePost(post, usuario);
 }
 
-export function excluirPost(postId: string, usuario: { id: string; admin: boolean }) {
-  const idx = FEED.findIndex((p) => p.id === postId);
-  if (idx === -1) return "nao_encontrado" as const;
-  const post = FEED[idx];
-  if (post.userId !== usuario.id && !usuario.admin) return "sem_permissao" as const;
-  FEED.splice(idx, 1);
-  return "ok" as const;
+// Apagar a raiz derruba a thread inteira (raiz: null); apagar uma resposta
+// aninhada só remove ela (e suas próprias respostas) da árvore, devolvendo o
+// restante já atualizado — ver contrato em meditacaoApi.ts::excluirPost.
+export function excluirPost(id: string, usuario: { id: string; admin: boolean }) {
+  const post = encontrarPostDoNo(id);
+  if (!post) return "nao_encontrado" as const;
+  const no = encontrarNo(post, id)!;
+  if (no.userId !== usuario.id && !usuario.admin) return "sem_permissao" as const;
+
+  if (post.id === id) {
+    const idx = FEED.findIndex((p) => p.id === id);
+    FEED.splice(idx, 1);
+    return { raizId: post.id, raiz: null } as const;
+  }
+
+  const pai = encontrarPai(post, id)!;
+  pai.respostas = pai.respostas.filter((r) => r.id !== id);
+  return { raizId: post.id, raiz: paraClientePost(post, usuario) } as const;
 }
 
 // Consumido pelo módulo de gamificação (meditando-junto -> partilhasHoje) —

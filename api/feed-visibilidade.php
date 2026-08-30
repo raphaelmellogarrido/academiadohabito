@@ -1,8 +1,9 @@
 <?php
 // PUT /api/feed-visibilidade.php — real de PUT /meditacao/feed/:id/visibilidade.
-// Trocar visibilidade é sempre só do dono, sem bypass de orientador/admin
-// (mesmo contrato do mock em alterarVisibilidade/community.store.ts). Ver
-// _feed.php pro shape de Post.
+// `id` pode ser o post raiz ou qualquer resposta dele em qualquer
+// profundidade. Trocar visibilidade é sempre só do dono DAQUELE nó
+// específico, sem bypass de orientador/admin (mesmo contrato do mock em
+// alterarVisibilidade/community.store.ts). Ver _feed.php pro shape de Post.
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
 header('Access-Control-Allow-Methods: PUT, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
@@ -29,7 +30,7 @@ if ($id <= 0 || !in_array($visibilidade, ['publico', 'privado', 'orientador'], t
     exit;
 }
 
-$stmt = $mysqli->prepare("SELECT email FROM comentarios WHERE id = ? AND parent_id IS NULL");
+$stmt = $mysqli->prepare("SELECT email FROM comentarios WHERE id = ?");
 $stmt->bind_param('i', $id);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();

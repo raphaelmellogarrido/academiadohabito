@@ -116,42 +116,39 @@ function concluirDiaAula(mysqli $mysqli, string $email, int $dia): ?array
     return montarProgresso($mysqli, $email);
 }
 
-// Reconstrói 1 comentário de aula completo (shape de `AulaComentario`) pelo
-// id — usado por aulas-comentario-reagir.php/editar.php/visibilidade.php
-// depois de mutar uma linha. `admin` sempre false (mesma regra de
-// alunoParaUsuario() em _config.php: não existe esse conceito em `alunos`
-// ainda) -> podeExcluir aceita o próprio autor OU ehOrientadorEmail()
-// (reaproveitada como "admin" por enquanto, ver _feed.php).
-function montarAulaComentario(mysqli $mysqli, int $id, string $emailAtual): ?array
+// Reconstrói 1 comentário de aula completo (árvore inteira: raiz + respostas
+// em qualquer profundidade, shape de `AulaComentario`) a partir de QUALQUER
+// id da thread — usado por aulas-comentario-reagir.php/editar.php/
+// visibilidade.php/responder.php depois de mutar uma linha. Reaproveita a
+// mesma árvore recursiva de _feed.php (montarArvoreComentario), só empilhando
+// `diaAtual` (calculado do aula_id da linha raiz) por cima do nó raiz.
+// `admin` sempre false em todo nó (mesma regra de alunoParaUsuario() em
+// _config.php: não existe esse conceito em `alunos` ainda) -> podeExcluir
+// aceita o próprio autor OU ehOrientadorEmail() (reaproveitada como "admin"
+// por enquanto, ver _feed.php).
+function montarAulaComentario(mysqli $mysqli, int $anyId, string $emailAtual): ?array
 {
+    $raizId = raizDoId($mysqli, $anyId);
+    if ($raizId === null) {
+        return null;
+    }
+
     $stmt = $mysqli->prepare(
-        "SELECT id, email, nome, aula_id, comentario, image_mime, visibilidade, created_at
-         FROM comentarios WHERE id = ? AND aula_id LIKE '" . AULA_ID_PREFIXO . "%'"
+        "SELECT aula_id FROM comentarios WHERE id = ? AND aula_id LIKE '" . AULA_ID_PREFIXO . "%'"
     );
-    $stmt->bind_param('i', $id);
+    $stmt->bind_param('i', $raizId);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     if (!$row) {
+        return null; // raiz não existe ou não é uma thread de /aulas
+    }
+
+    $arvore = montarArvoreComentario($mysqli, $raizId, $emailAtual);
+    if ($arvore === null) {
         return null;
     }
 
-    $reacoes = montarReacoesEmLote($mysqli, [(int) $row['id']], $emailAtual)[(int) $row['id']];
-    $dia = (int) substr($row['aula_id'], strlen(AULA_ID_PREFIXO));
-
-    return [
-        'id' => (string) $row['id'],
-        'userId' => $row['email'],
-        'nome' => $row['nome'] ?: 'Aluno',
-        'admin' => false,
-        'diaAtual' => $dia,
-        'texto' => $row['comentario'],
-        'foto' => $row['image_mime'] ? ('/api/imagem-comentario.php?id=' . $row['id']) : null,
-        'visibilidade' => $row['visibilidade'] ?: 'publico',
-        'reacoes' => $reacoes['reacoes'],
-        'minhasReacoes' => $reacoes['minhasReacoes'],
-        'podeEditar' => $row['email'] === $emailAtual,
-        'podeExcluir' => $row['email'] === $emailAtual || ehOrientadorEmail($emailAtual),
-        'criadoEm' => isoComOffset($row['created_at']),
-    ];
+    $arvore['diaAtual'] = (int) substr($row['aula_id'], strlen(AULA_ID_PREFIXO));
+    return $arvore;
 }

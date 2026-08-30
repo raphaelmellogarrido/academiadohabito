@@ -5,6 +5,7 @@ import {
   listarComentarios,
   criarComentario,
   reagirComentario,
+  responderComentario,
   editarComentario,
   alterarVisibilidadeComentario,
   excluirComentario,
@@ -56,6 +57,17 @@ aulasRouter.post("/meditacao/aulas/comentarios/:id/reagir", requireAuth, (req, r
   res.json({ ok: true, comentario });
 });
 
+// `id` pode ser o comentário raiz ou qualquer resposta dele em qualquer
+// profundidade — mesmo contrato de responder no feed (community.routes.ts).
+aulasRouter.post("/meditacao/aulas/comentarios/:id/responder", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  const { texto = "" } = req.body ?? {};
+  if (!String(texto).trim()) return res.status(400).json({ erro: "resposta vazia" });
+  const comentario = responderComentario(String(req.params.id), usuario, String(texto));
+  if (!comentario) return res.status(404).json({ erro: "comentário não encontrado" });
+  res.json({ ok: true, comentario });
+});
+
 aulasRouter.put("/meditacao/aulas/comentarios/:id", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
   const { texto = "" } = req.body ?? {};
@@ -81,5 +93,5 @@ aulasRouter.delete("/meditacao/aulas/comentarios/:id", requireAuth, (req, res) =
   const resultado = excluirComentario(String(req.params.id), usuario);
   if (resultado === "nao_encontrado") return res.status(404).json({ erro: "comentário não encontrado" });
   if (resultado === "sem_permissao") return res.status(403).json({ erro: "sem permissão" });
-  res.json({ ok: true });
+  res.json({ ok: true, raizId: resultado.raizId, raiz: resultado.raiz });
 });

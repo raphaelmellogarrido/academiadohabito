@@ -9,7 +9,7 @@ const ORDEM: Visibilidade[] = ["publico", "privado", "orientador"];
 const EMOJI: Record<Visibilidade, string> = {
   publico: "🌍",
   privado: "🔒",
-  orientador: "🧘",
+  orientador: "🧘‍♂️",
 };
 
 const TITULO: Record<Visibilidade, string> = {

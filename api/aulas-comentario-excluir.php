@@ -2,9 +2,14 @@
 // DELETE /api/aulas-comentario-excluir.php?id=... — real de DELETE
 // /meditacao/aulas/comentarios/:id. Id vai na query string (não no corpo,
 // já que api.delete() do client não manda body) — mesmo padrão de
-// imagem-comentario.php pra passar id por GET. Dono OU ehOrientadorEmail()
-// (reaproveitada como "admin" por enquanto, ver _feed.php) pode excluir —
-// mesmo contrato do mock quando usuario.admin é true.
+// imagem-comentario.php pra passar id por GET. `id` pode ser o comentário
+// raiz ou qualquer resposta dele em qualquer profundidade. Dono OU
+// ehOrientadorEmail() (reaproveitada como "admin" por enquanto, ver
+// _feed.php) pode excluir — mesmo contrato do mock quando usuario.admin é
+// true. Excluir a raiz derruba a thread inteira (cascade via
+// descendentes()); excluir um nó aninhado só remove ele + as respostas dele,
+// devolvendo o resto da árvore já atualizado — ver contrato de
+// meditacaoApi.ts::aulasExcluirComentario.
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
 header('Access-Control-Allow-Methods: DELETE, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
@@ -30,7 +35,7 @@ if ($id <= 0) {
 }
 
 $stmt = $mysqli->prepare(
-    "SELECT email FROM comentarios WHERE id = ? AND aula_id LIKE '" . AULA_ID_PREFIXO . "%'"
+    "SELECT email, parent_id FROM comentarios WHERE id = ? AND aula_id LIKE '" . AULA_ID_PREFIXO . "%'"
 );
 $stmt->bind_param('i', $id);
 $stmt->execute();
@@ -48,14 +53,28 @@ if ($row['email'] !== $email && !ehOrientadorEmail($email)) {
     exit;
 }
 
-$stmt = $mysqli->prepare("DELETE FROM comentario_reacoes WHERE comentario_id = ?");
-$stmt->bind_param('i', $id);
+$raizId = raizDoId($mysqli, $id);
+$idsParaApagar = descendentes($mysqli, $id); // inclui o próprio $id
+
+$placeholders = implode(',', array_fill(0, count($idsParaApagar), '?'));
+$tipos = str_repeat('i', count($idsParaApagar));
+
+$stmt = $mysqli->prepare("DELETE FROM comentario_reacoes WHERE comentario_id IN ($placeholders)");
+$stmt->bind_param($tipos, ...$idsParaApagar);
 $stmt->execute();
 $stmt->close();
 
-$stmt = $mysqli->prepare("DELETE FROM comentarios WHERE id = ?");
-$stmt->bind_param('i', $id);
+$stmt = $mysqli->prepare("DELETE FROM comentarios WHERE id IN ($placeholders)");
+$stmt->bind_param($tipos, ...$idsParaApagar);
 $stmt->execute();
 $stmt->close();
 
-echo json_encode(['ok' => true]);
+// Se apagou a raiz, a thread inteira sumiu (raiz: null, client remove da
+// lista); se apagou um nó aninhado, devolve a árvore restante já atualizada
+// (client substitui pelo raizId).
+$eraRaiz = $row['parent_id'] === null;
+echo json_encode([
+    'ok' => true,
+    'raizId' => (string) $raizId,
+    'raiz' => $eraRaiz ? null : montarAulaComentario($mysqli, $raizId, $email),
+]);

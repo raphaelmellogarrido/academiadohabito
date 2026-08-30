@@ -24,18 +24,21 @@ if ($metodo === 'GET') {
     $limite = 15;
     $souOrientador = ehOrientadorEmail($email) ? 1 : 0;
 
+    // `parent_id IS NULL` pra listar só os comentários raiz — respostas
+    // aparecem aninhadas dentro de cada `comentario.respostas`
+    // (montarAulaComentario), não como itens soltos na página.
     $like = AULA_ID_PREFIXO . '%';
     if ($cursor > 0) {
         $stmt = $mysqli->prepare(
             "SELECT id FROM comentarios
-             WHERE aula_id LIKE ? AND id < ? AND " . condVisibilidadeSql() . "
+             WHERE aula_id LIKE ? AND id < ? AND parent_id IS NULL AND " . condVisibilidadeSql() . "
              ORDER BY id DESC LIMIT ?"
         );
         $stmt->bind_param('sisii', $like, $cursor, $email, $souOrientador, $limite);
     } else {
         $stmt = $mysqli->prepare(
             "SELECT id FROM comentarios
-             WHERE aula_id LIKE ? AND " . condVisibilidadeSql() . "
+             WHERE aula_id LIKE ? AND parent_id IS NULL AND " . condVisibilidadeSql() . "
              ORDER BY id DESC LIMIT ?"
         );
         $stmt->bind_param('ssii', $like, $email, $souOrientador, $limite);

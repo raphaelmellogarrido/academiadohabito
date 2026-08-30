@@ -1,9 +1,11 @@
 <?php
 // PUT /api/aulas-comentario-visibilidade.php — real de PUT
-// /meditacao/aulas/comentarios/:id/visibilidade. Trocar visibilidade é
-// sempre só do dono, sem bypass de orientador/admin (mesmo contrato do mock
-// em alterarVisibilidadeComentario/aulas.comentarios.ts). Ver _aulas.php pro
-// shape de AulaComentario.
+// /meditacao/aulas/comentarios/:id/visibilidade. `id` pode ser o comentário
+// raiz ou qualquer resposta dele em qualquer profundidade (mesmo motivo do
+// filtro em aulas-comentario-editar.php). Trocar visibilidade é sempre só do
+// dono DAQUELE nó específico, sem bypass de orientador/admin (mesmo contrato
+// do mock em alterarVisibilidadeComentario/aulas.comentarios.ts). Ver
+// _aulas.php pro shape de AulaComentario.
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
 header('Access-Control-Allow-Methods: PUT, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }

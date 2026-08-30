@@ -879,6 +879,50 @@
   margin-top: 15px;
 }
 
+/* Resposta (qualquer profundidade) reaproveita o mesmo card `.cm-post` —
+   só um pouco mais compacta, já que fica indentada dentro de
+   `.cm-post-respostas` (ver abaixo). */
+.cm-post--resposta {
+  padding: 12px 14px;
+  margin-top: 0;
+  box-shadow: none;
+}
+
+.cm-post.is-admin {
+  background: #1f2b4d;
+  border-color: #1f2b4d;
+  color: #fff;
+}
+
+.cm-post.is-admin .cm-post-quando,
+.cm-post.is-admin .cm-comentario-icones {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.cm-post.is-admin .cm-post-reacao {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.cm-post.is-admin .cm-post-responder {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.cm-post.is-admin .cm-visibilidade-icone.is-clicavel:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cm-comentario-dia {
+  font-weight: 500;
+  color: var(--cor-texto-suave);
+  font-size: 12px;
+}
+
+.cm-post.is-admin .cm-comentario-dia {
+  color: rgba(255, 255, 255, 0.65);
+}
+
 .cm-post-cabecalho {
   display: flex;
   align-items: flex-start;
@@ -964,15 +1008,21 @@
   color: var(--cor-texto-suave);
 }
 
+/* Thread de respostas: cada nível vira um novo `.cm-post-respostas`
+   aninhado dentro do bloco a que responde — a borda + padding à esquerda
+   é o que dá a indentação visual, crescendo naturalmente com a
+   profundidade (sem precisar calcular margem por nível em JS/CSS). */
 .cm-post-respostas {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 10px 0 0;
-  border-top: 1px solid var(--cor-borda);
+  margin: 12px 0 0;
+  padding: 2px 0 0 16px;
+  border-left: 2px solid var(--cor-borda);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
+  gap: 12px;
+}
+
+.cm-post.is-admin .cm-post-respostas {
+  border-left-color: rgba(255, 255, 255, 0.2);
 }
 
 .cm-post-resposta-form {
@@ -1151,53 +1201,6 @@
   gap: 10px;
 }
 
-.cm-comentario-item {
-  display: flex;
-  gap: 10px;
-  background: var(--cor-branco);
-  border: 1px solid var(--cor-borda);
-  border-radius: var(--raio);
-  padding: 12px 14px;
-  box-shadow: var(--sombra);
-}
-
-.cm-comentario-item.is-admin {
-  background: #1f2b4d;
-  border-color: #1f2b4d;
-  color: #fff;
-}
-
-.cm-comentario-corpo {
-  flex: 1;
-  min-width: 0;
-}
-
-.cm-comentario-topo {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.cm-comentario-autor {
-  margin: 0 0 2px;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.cm-comentario-autor span {
-  font-weight: 500;
-  color: var(--cor-texto-suave);
-}
-
-.is-admin .cm-comentario-autor span {
-  color: rgba(255, 255, 255, 0.65);
-}
-
 .cm-badge-admin {
   font-size: 10px;
   font-weight: 700;
@@ -1211,13 +1214,16 @@
 .cm-comentario-icones {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
+  row-gap: 4px;
   flex-shrink: 0;
   color: var(--cor-texto-suave);
 }
 
-.is-admin .cm-comentario-icones {
-  color: rgba(255, 255, 255, 0.65);
+.cm-comentario-icones .cm-post-quando {
+  white-space: nowrap;
 }
 
 .cm-comentario-excluir,
@@ -1248,28 +1254,3 @@
   background: var(--cor-creme);
 }
 
-.is-admin .cm-visibilidade-icone.is-clicavel:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.cm-comentario-texto {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.4;
-}
-
-.cm-comentario-foto {
-  max-width: 100%;
-  border-radius: 10px;
-  margin-top: 8px;
-}
-
-.is-admin .cm-post-reacao {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-
-.is-admin .cm-post-responder {
-  color: rgba(255, 255, 255, 0.75);
-}

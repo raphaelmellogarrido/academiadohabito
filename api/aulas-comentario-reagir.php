@@ -1,7 +1,9 @@
 <?php
 // POST /api/aulas-comentario-reagir.php — real de POST
-// /meditacao/aulas/comentarios/:id/reagir. Toggle: já reagiu com esse emoji
-// -> remove, senão -> adiciona. Mesmo padrão de feed-reagir.php.
+// /meditacao/aulas/comentarios/:id/reagir. `id` pode ser o comentário raiz
+// ou qualquer resposta dele em qualquer profundidade (montarAulaComentario
+// resolve a raiz internamente). Toggle: já reagiu com esse emoji -> remove,
+// senão -> adiciona. Mesmo padrão de feed-reagir.php.
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }

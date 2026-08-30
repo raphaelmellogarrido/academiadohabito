@@ -41,6 +41,18 @@ export function useAulaComentarios() {
     setComentarios((atual) => atual.filter((c) => c.id !== id));
   }
 
+  // Contrato de excluir num nó qualquer da thread (raiz ou resposta em
+  // qualquer profundidade): `raiz: null` quando a raiz foi apagada (remove o
+  // item da lista top-level); `raiz: <árvore>` quando foi um nó aninhado
+  // (substitui o item pela árvore restante, sem aquele nó).
+  function excluirNoComentario(raizId: string, raiz: AulaComentario | null) {
+    if (raiz === null) {
+      removerComentario(raizId);
+    } else {
+      atualizarComentario(raiz);
+    }
+  }
+
   return {
     comentarios,
     carregando,
@@ -50,5 +62,6 @@ export function useAulaComentarios() {
     adicionarComentario,
     atualizarComentario,
     removerComentario,
+    excluirNoComentario,
   };
 }
