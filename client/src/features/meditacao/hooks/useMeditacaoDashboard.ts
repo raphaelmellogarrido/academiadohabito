@@ -8,15 +8,18 @@ export function useMeditacaoDashboard() {
   const [carregando, setCarregando] = useState(true);
   const [marcando, setMarcando] = useState(false);
 
+  // allSettled (não all): em produção nem todo card já foi migrado pra
+  // PHP real (ver docs/ARCHITECTURE.md) — se um falhar (404), os outros que
+  // já têm dado real (sequência, meditando junto) não podem sumir junto.
   const recarregar = useCallback(async () => {
-    const [seq, jor, pul] = await Promise.all([
+    const [seq, jor, pul] = await Promise.allSettled([
       meditacaoApi.sequencia(),
       meditacaoApi.jornada(),
       meditacaoApi.meditandoJunto(),
     ]);
-    setSequencia(seq);
-    setJornada(jor);
-    setPulso(pul);
+    if (seq.status === "fulfilled") setSequencia(seq.value);
+    if (jor.status === "fulfilled") setJornada(jor.value);
+    if (pul.status === "fulfilled") setPulso(pul.value);
   }, []);
 
   useEffect(() => {
