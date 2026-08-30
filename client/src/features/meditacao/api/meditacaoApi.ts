@@ -164,16 +164,32 @@ export const meditacaoApi = {
       ? api.post<{ ok: true; post: Post }>("/feed-responder.php", { id: postId, texto })
       : api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/responder`, { texto }),
 
-  aulasProgresso: () => api.get<{ ok: true } & AulaProgresso>("/meditacao/aulas/progresso"),
-  aulasConcluirDia: (dia: number) => api.post<{ ok: true } & AulaProgresso>("/meditacao/aulas/concluir", { dia }),
+  aulasProgresso: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true } & AulaProgresso>("/aulas-progresso.php")
+      : api.get<{ ok: true } & AulaProgresso>("/meditacao/aulas/progresso"),
+  aulasConcluirDia: (dia: number) =>
+    ehProducaoReal
+      ? api.post<{ ok: true } & AulaProgresso>("/aulas-concluir.php", { dia })
+      : api.post<{ ok: true } & AulaProgresso>("/meditacao/aulas/concluir", { dia }),
   aulasComentarios: (cursor: string | null) =>
-    api.get<{ ok: true; comentarios: AulaComentario[]; proximoCursor: string | null }>(
-      `/meditacao/aulas/comentarios${cursor ? `?cursor=${cursor}` : ""}`,
-    ),
+    ehProducaoReal
+      ? api.get<{ ok: true; comentarios: AulaComentario[]; proximoCursor: string | null }>(
+          `/aulas-comentarios.php${cursor ? `?cursor=${cursor}` : ""}`,
+        )
+      : api.get<{ ok: true; comentarios: AulaComentario[]; proximoCursor: string | null }>(
+          `/meditacao/aulas/comentarios${cursor ? `?cursor=${cursor}` : ""}`,
+        ),
   aulasComentar: (texto: string, foto: string | null = null, publico: boolean = true) =>
-    api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", { texto, foto, publico }),
+    ehProducaoReal
+      ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentarios.php", { texto, foto, publico })
+      : api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", { texto, foto, publico }),
   aulasReagir: (id: string, reacao: "🙏" | "❤️" | "🔥") =>
-    api.post<{ ok: true; comentario: AulaComentario }>(`/meditacao/aulas/comentarios/${id}/reagir`, { reacao }),
+    ehProducaoReal
+      ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-reagir.php", { id, reacao })
+      : api.post<{ ok: true; comentario: AulaComentario }>(`/meditacao/aulas/comentarios/${id}/reagir`, { reacao }),
   aulasExcluirComentario: (id: string) =>
-    api.delete<{ ok: true }>(`/meditacao/aulas/comentarios/${id}`),
+    ehProducaoReal
+      ? api.delete<{ ok: true }>(`/aulas-comentario-excluir.php?id=${id}`)
+      : api.delete<{ ok: true }>(`/meditacao/aulas/comentarios/${id}`),
 };

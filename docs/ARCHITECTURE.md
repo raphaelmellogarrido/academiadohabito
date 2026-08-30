@@ -99,6 +99,21 @@ Lógica compartilhada (montagem de post, reações em lote anti-N+1) vive em
 aqui a visibilidade é real: post `'privado'` só aparece pro próprio autor,
 já que agora é dado de múltiplos alunos de verdade.
 
+`/app/meditacao/aulas` (`aulas-progresso.php`, `aulas-concluir.php`,
+`aulas-comentarios.php`, `aulas-comentario-reagir.php`,
+`aulas-comentario-excluir.php`) porta 1:1 o algoritmo de
+`aulas.store.ts::getProgresso`/`concluirDia` (bloco de 3 dias, pausa
+obrigatória) pra dentro de `api/_aulas.php`. Progresso mora numa tabela nova
+**self-provisioning** `ah_aulas_progresso` (`email`+`dia`+`concluido_em`,
+mesmo padrão do `ah_proximo_encontro`/`ah_encontro_reservas` de
+`_encontro.php` — nenhuma tabela real equivalente existe). Comentários da
+aula reaproveitam `comentarios`/`comentario_reacoes` (mesmo `_feed.php`
+usado pelo feed), mas como essa tabela não tem coluna pra "dia da aula" e é
+compartilhada com o site antigo, o dia fica embutido no próprio `aula_id`
+como `"aulas:{dia}"` (listagem filtra por `aula_id LIKE 'aulas:%'`). `admin`
+no comentário real é sempre `false` (mesma regra de `alunoParaUsuario()`) —
+excluir fica restrito ao próprio autor, sem bypass de admin.
+
 ## Rodando
 ```
 npm install
