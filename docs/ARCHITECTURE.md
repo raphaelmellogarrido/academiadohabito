@@ -62,6 +62,14 @@ aqui o cookie é assinado — não dá pra forjar sem o segredo.
 definiu uma (login.php responde `precisaCriarSenha:true` nesse caso, sem
 fluxo de UI ainda).
 
+`api/habitos.php` (GET, também atrás de `exigirSessao()`) é o real de
+`GET /me/habitos` (`useUserHabits.ts`, base da "rota inteligente" em
+`routes.tsx`). Sem tabela de matrícula em `u790959747_comunidade` (schema
+antigo era só meditação), a regra é a mesma do mock: todo aluno autenticado
+já cai matriculado só em "meditacao". `enrolled_at` é só cosmético (não
+aparece em lugar nenhum do client hoje) — usa `MIN(presencas.data)` do aluno
+quando existe, senão a data de hoje.
+
 ## Rodando
 ```
 npm install
