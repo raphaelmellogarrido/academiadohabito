@@ -35,6 +35,16 @@ function iniciais(nome: string) {
   return nome.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
+// Orientadores que podem ver posts marcados como "Orientador" no feed de
+// comunidade (ver community.store.ts) — lista fixa por enquanto, não existe
+// papel de orientador no cadastro ainda. Mesmo par de e-mails do lado PHP
+// real (EMAILS_ORIENTADORES em api/_feed.php) — manter os dois em sincronia.
+const EMAILS_ORIENTADORES = new Set(["raphaelmellogarrido@gmail.com", "rsp.ren@gmail.com"]);
+
+export function ehOrientador(email: string): boolean {
+  return EMAILS_ORIENTADORES.has(email.trim().toLowerCase());
+}
+
 export function loginMock(email: string, nome?: string): { token: string; usuario: Usuario } {
   const emailNorm = email.trim().toLowerCase();
   let usuario = USUARIOS_POR_EMAIL.get(emailNorm);

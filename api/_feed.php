@@ -17,13 +17,26 @@ function isoComOffset(string $mysqlDatetime): string
     return str_replace(' ', 'T', $mysqlDatetime) . '-03:00';
 }
 
-// null/'publico' = visível a todo mundo; qualquer outro valor ('privado',
-// 'orientador' — não temos lista de orientadores nesta app ainda) só é
-// visível pro próprio autor. Aplicado em SQL (WHERE), não em PHP, pra não
-// vazar posts privados de outros alunos preenchendo os 30 mais recentes.
+// Orientadores que podem ver posts marcados 'orientador' — lista fixa por
+// enquanto, não existe papel de orientador na tabela `alunos` ainda. Mesmo
+// par de e-mails do lado mock Node (ehOrientador em
+// server/src/modules/auth/auth.service.ts) — manter os dois em sincronia.
+const EMAILS_ORIENTADORES = ['raphaelmellogarrido@gmail.com', 'rsp.ren@gmail.com'];
+
+function ehOrientadorEmail(string $email): bool
+{
+    return in_array(strtolower(trim($email)), EMAILS_ORIENTADORES, true);
+}
+
+// null/'publico' = visível a todo mundo; 'privado' só pro próprio autor;
+// 'orientador' só pro próprio autor + ehOrientadorEmail(). Aplicado em SQL
+// (WHERE), não em PHP, pra não vazar posts privados de outros alunos
+// preenchendo os 30 mais recentes. 2 placeholders: e-mail do autor (pro
+// aluno ver o próprio post privado/orientador) e flag calculada em PHP se
+// quem está pedindo é orientador.
 function condVisibilidadeSql(): string
 {
-    return "(visibilidade = 'publico' OR visibilidade IS NULL OR email = ?)";
+    return "(visibilidade = 'publico' OR visibilidade IS NULL OR email = ? OR (visibilidade = 'orientador' AND ? = 1))";
 }
 
 // Reações (🙏 ❤️ 🔥) de vários comentários numa query só (evita N+1).
@@ -121,7 +134,7 @@ function montarPost(mysqli $mysqli, int $id, string $emailAtual): ?array
         'texto' => $row['comentario'],
         'humor' => null, // não existe coluna real pra humor, e o mock também nunca renderiza esse campo no post
         'foto' => $row['image_mime'] ? ('/api/imagem-comentario.php?id=' . $row['id']) : null,
-        'publico' => ($row['visibilidade'] ?: 'publico') === 'publico',
+        'visibilidade' => $row['visibilidade'] ?: 'publico',
         'reacoes' => $reacoes['reacoes'],
         'minhasReacoes' => $reacoes['minhasReacoes'],
         'respostas' => $respostas,

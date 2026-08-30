@@ -1,4 +1,5 @@
-export type Visibilidade = "publico" | "privado" | "orientador";
+import type { Visibilidade } from "../api/meditacaoApi";
+export type { Visibilidade };
 
 const OPCOES: { id: Visibilidade; label: string; icone: string }[] = [
   { id: "publico", label: "Público", icone: "🌍" },

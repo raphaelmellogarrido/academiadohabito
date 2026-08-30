@@ -63,6 +63,10 @@ export interface Desafio {
 
 export type Humor = "calma" | "agitada" | "cansada" | "foco";
 
+// publico = todo mundo vê; privado = só quem postou; orientador = só quem
+// postou + admins (ver EMAILS_ORIENTADORES em community.store.ts/_feed.php).
+export type Visibilidade = "publico" | "privado" | "orientador";
+
 export interface Post {
   id: string;
   userId: string;
@@ -71,7 +75,7 @@ export interface Post {
   texto: string;
   humor: Humor | null;
   foto: string | null;
-  publico: boolean;
+  visibilidade: Visibilidade;
   reacoes: Record<"🙏" | "❤️" | "🔥", number>;
   minhasReacoes: Record<string, string[]>;
   respostas: { id: string; userId: string; nome: string; texto: string; criadoEm: string }[];
@@ -151,10 +155,10 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.get<{ ok: true; posts: Post[] }>("/feed.php")
       : api.get<{ ok: true; posts: Post[] }>("/meditacao/feed"),
-  postar: (texto: string, foto: string | null, publico: boolean, humor: Humor | null = null) =>
+  postar: (texto: string, foto: string | null, visibilidade: Visibilidade, humor: Humor | null = null) =>
     ehProducaoReal
-      ? api.post<{ ok: true; post: Post }>("/feed.php", { texto, foto, publico, humor })
-      : api.post<{ ok: true; post: Post }>("/meditacao/feed", { texto, foto, publico, humor }),
+      ? api.post<{ ok: true; post: Post }>("/feed.php", { texto, foto, visibilidade, humor })
+      : api.post<{ ok: true; post: Post }>("/meditacao/feed", { texto, foto, visibilidade, humor }),
   reagir: (postId: string, reacao: "🙏" | "❤️" | "🔥") =>
     ehProducaoReal
       ? api.post<{ ok: true; post: Post }>("/feed-reagir.php", { id: postId, reacao })

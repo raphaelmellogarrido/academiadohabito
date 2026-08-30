@@ -33,10 +33,11 @@ if (mb_strlen($texto) > 140) {
 
 // Só responde a um post que existe e que o aluno atual pode ver (reaproveita
 // a mesma condição de visibilidade do feed.php).
+$souOrientador = ehOrientadorEmail($email) ? 1 : 0;
 $stmtPai = $mysqli->prepare(
     "SELECT id FROM comentarios WHERE id = ? AND parent_id IS NULL AND " . condVisibilidadeSql()
 );
-$stmtPai->bind_param('is', $id, $email);
+$stmtPai->bind_param('isi', $id, $email, $souOrientador);
 $stmtPai->execute();
 $pai = $stmtPai->get_result()->fetch_assoc();
 $stmtPai->close();

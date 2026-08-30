@@ -1,4 +1,5 @@
 import { hojeBrasilISO } from "../gamification/gamification.store.js";
+import { ehOrientador } from "../auth/auth.service.js";
 
 // --- Feed (Dificuldade do dia / "o que sentiu na prática") -----------------
 export type Reacao = "🙏" | "❤️" | "🔥";
@@ -13,6 +14,10 @@ export interface Resposta {
 
 export type Humor = "calma" | "agitada" | "cansada" | "foco";
 
+// publico = todo mundo vê; privado = só quem postou; orientador = só quem
+// postou + ehOrientador(email) (ver auth.service.ts).
+export type Visibilidade = "publico" | "privado" | "orientador";
+
 export interface Post {
   id: string;
   userId: string;
@@ -21,11 +26,22 @@ export interface Post {
   texto: string;
   humor: Humor | null;
   foto: string | null;
-  publico: boolean;
+  visibilidade: Visibilidade;
   reacoes: Record<Reacao, number>;
   minhasReacoes: Record<string, Reacao[]>; // userId -> reações que já deu neste post
   respostas: Resposta[];
   criadoEm: string;
+}
+
+// Único ponto que decide se `usuarioAtual` pode ver `post` — usado tanto pra
+// filtrar o feed quanto pra barrar reagir/responder num post que ele nem
+// deveria enxergar (mesma checagem dos dois lados, igual condVisibilidadeSql
+// no PHP real).
+function podeVerPost(post: Post, usuarioAtual: { id: string; email: string }): boolean {
+  if (post.visibilidade === "publico") return true;
+  if (post.userId === usuarioAtual.id) return true;
+  if (post.visibilidade === "orientador") return ehOrientador(usuarioAtual.email);
+  return false;
 }
 
 let seq = 1;
@@ -40,7 +56,7 @@ const FEED: Post[] = [
     texto: "Hoje a mente estava agitada, mas os 10 minutos valeram cada segundo. 🙏",
     humor: "agitada",
     foto: null,
-    publico: true,
+    visibilidade: "publico",
     reacoes: { "🙏": 3, "❤️": 1, "🔥": 0 },
     minhasReacoes: {},
     respostas: [],
@@ -48,15 +64,17 @@ const FEED: Post[] = [
   },
 ];
 
-export function listarFeed() {
-  return [...FEED].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+export function listarFeed(usuarioAtual: { id: string; email: string }) {
+  return [...FEED]
+    .filter((p) => podeVerPost(p, usuarioAtual))
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
 }
 
 export function criarPost(
   usuario: { id: string; nome: string; avatarUrl: string | null },
   texto: string,
   foto: string | null,
-  publico: boolean,
+  visibilidade: Visibilidade,
   humor: Humor | null = null,
 ) {
   const post: Post = {
@@ -67,7 +85,7 @@ export function criarPost(
     texto: texto.slice(0, 140),
     humor,
     foto,
-    publico,
+    visibilidade,
     reacoes: { "🙏": 0, "❤️": 0, "🔥": 0 },
     minhasReacoes: {},
     respostas: [],
@@ -77,9 +95,10 @@ export function criarPost(
   return post;
 }
 
-export function reagir(postId: string, userId: string, reacao: Reacao) {
+export function reagir(postId: string, usuarioAtual: { id: string; email: string }, reacao: Reacao) {
   const post = FEED.find((p) => p.id === postId);
-  if (!post) return null;
+  if (!post || !podeVerPost(post, usuarioAtual)) return null;
+  const userId = usuarioAtual.id;
   const minhas = post.minhasReacoes[userId] ?? [];
   if (minhas.includes(reacao)) {
     post.reacoes[reacao] = Math.max(0, post.reacoes[reacao] - 1);
@@ -91,9 +110,9 @@ export function reagir(postId: string, userId: string, reacao: Reacao) {
   return post;
 }
 
-export function responder(postId: string, usuario: { id: string; nome: string }, texto: string) {
+export function responder(postId: string, usuario: { id: string; nome: string; email: string }, texto: string) {
   const post = FEED.find((p) => p.id === postId);
-  if (!post) return null;
+  if (!post || !podeVerPost(post, usuario)) return null;
   const resposta: Resposta = {
     id: proximoId(),
     userId: usuario.id,

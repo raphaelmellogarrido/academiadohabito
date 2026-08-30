@@ -12,6 +12,12 @@ const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; t
 const REACOES: ("🙏" | "❤️" | "🔥")[] = ["🙏", "❤️", "🔥"];
 const LIMITE_TEXTO = 140;
 
+const LABEL_VISIBILIDADE_POST: Record<Visibilidade, string> = {
+  publico: "Comentário público",
+  privado: "Privado",
+  orientador: "Para orientadores",
+};
+
 const HUMORES: { valor: Humor; label: string }[] = [
   { valor: "calma", label: "Calma 😌" },
   { valor: "agitada", label: "Agitada 🌪️" },
@@ -45,7 +51,7 @@ function PostItem({ post, onMudou }: { post: Post; onMudou: (p: Post) => void })
         <div>
           <strong>{post.nome}</strong>
           <span className="cm-post-quando">
-            {post.publico ? "Comentário público" : "Privado"} · {new Date(post.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
+            {LABEL_VISIBILIDADE_POST[post.visibilidade]} · {new Date(post.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" })}
           </span>
         </div>
       </div>
@@ -155,7 +161,7 @@ export function Feed() {
     if (!texto.trim() && !foto) return;
     setEnviando(true);
     try {
-      const r = await meditacaoApi.postar(texto, foto, visibilidade === "publico", humor);
+      const r = await meditacaoApi.postar(texto, foto, visibilidade, humor);
       setPosts((atual) => [r.post, ...(atual ?? [])]);
       setTexto("");
       setFoto(null);

@@ -17,15 +17,16 @@ $metodo = $_SERVER['REQUEST_METHOD'];
 if ($metodo === 'GET') {
     // Diferente do mock (que devolve TODO post pra todo mundo): aqui é dado
     // real de múltiplos alunos, então aplica visibilidade de verdade —
-    // 'privado'/'orientador' só aparece pro próprio autor (ver
-    // condVisibilidadeSql em _feed.php).
+    // 'privado' só aparece pro próprio autor, 'orientador' pro autor +
+    // e-mails de EMAILS_ORIENTADORES (ver condVisibilidadeSql em _feed.php).
     $aulaId = AULA_ID_FEED;
+    $souOrientador = ehOrientadorEmail($email) ? 1 : 0;
     $stmt = $mysqli->prepare(
         "SELECT id FROM comentarios
          WHERE aula_id = ? AND parent_id IS NULL AND " . condVisibilidadeSql() . "
          ORDER BY created_at DESC, id DESC LIMIT 30"
     );
-    $stmt->bind_param('ss', $aulaId, $email);
+    $stmt->bind_param('ssi', $aulaId, $email, $souOrientador);
     $stmt->execute();
     $res = $stmt->get_result();
     $ids = [];
@@ -50,7 +51,10 @@ if ($metodo === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true) ?: [];
     $texto = trim($input['texto'] ?? '');
     $fotoDataUri = $input['foto'] ?? null;
-    $publico = !array_key_exists('publico', $input) || $input['publico'] ? true : false;
+    $visibilidadesValidas = ['publico', 'privado', 'orientador'];
+    $visibilidade = in_array($input['visibilidade'] ?? null, $visibilidadesValidas, true)
+        ? $input['visibilidade']
+        : 'publico';
     // humor é aceito no corpo mas não persistido: comentarios não tem essa
     // coluna e o mock também nunca renderiza post.humor em lugar nenhum do
     // Feed.tsx, só captura — sem regressão visível pro usuário.
@@ -85,7 +89,6 @@ if ($metodo === 'POST') {
         }
     }
 
-    $visibilidade = $publico ? 'publico' : 'privado';
     $aulaId = AULA_ID_FEED;
     $parentId = null;
 

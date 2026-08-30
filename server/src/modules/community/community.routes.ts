@@ -9,22 +9,26 @@ import {
   alternarDesafio,
   getFrase,
   editarFrase,
+  type Visibilidade,
 } from "./community.store.js";
 
 export const communityRouter = Router();
 
-communityRouter.get("/meditacao/feed", requireAuth, (_req, res) => {
-  res.json({ ok: true, posts: listarFeed() });
+communityRouter.get("/meditacao/feed", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  res.json({ ok: true, posts: listarFeed(usuario) });
 });
 
 const HUMORES = ["calma", "agitada", "cansada", "foco"];
+const VISIBILIDADES: Visibilidade[] = ["publico", "privado", "orientador"];
 
 communityRouter.post("/meditacao/feed", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
-  const { texto = "", foto = null, publico = true, humor = null } = req.body ?? {};
+  const { texto = "", foto = null, visibilidade = "publico", humor = null } = req.body ?? {};
   if (!String(texto).trim() && !foto) return res.status(400).json({ erro: "post vazio" });
   const humorValido = HUMORES.includes(humor) ? humor : null;
-  const post = criarPost(usuario, String(texto), foto, Boolean(publico), humorValido);
+  const visibilidadeValida = VISIBILIDADES.includes(visibilidade) ? visibilidade : "publico";
+  const post = criarPost(usuario, String(texto), foto, visibilidadeValida, humorValido);
   res.status(201).json({ ok: true, post });
 });
 
@@ -32,7 +36,7 @@ communityRouter.post("/meditacao/feed/:id/reagir", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
   const { reacao } = req.body ?? {};
   if (!["🙏", "❤️", "🔥"].includes(reacao)) return res.status(400).json({ erro: "reação inválida" });
-  const post = reagir(String(req.params.id), usuario.id, reacao);
+  const post = reagir(String(req.params.id), usuario, reacao);
   if (!post) return res.status(404).json({ erro: "post não encontrado" });
   res.json({ ok: true, post });
 });
