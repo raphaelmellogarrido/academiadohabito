@@ -22,6 +22,7 @@ if ($metodo === 'GET') {
     // (aulas.comentarios.ts::listarComentarios), 15 por página.
     $cursor = isset($_GET['cursor']) ? (int) $_GET['cursor'] : 0;
     $limite = 15;
+    $souOrientador = ehOrientadorEmail($email) ? 1 : 0;
 
     $like = AULA_ID_PREFIXO . '%';
     if ($cursor > 0) {
@@ -30,14 +31,14 @@ if ($metodo === 'GET') {
              WHERE aula_id LIKE ? AND id < ? AND " . condVisibilidadeSql() . "
              ORDER BY id DESC LIMIT ?"
         );
-        $stmt->bind_param('sisi', $like, $cursor, $email, $limite);
+        $stmt->bind_param('sisii', $like, $cursor, $email, $souOrientador, $limite);
     } else {
         $stmt = $mysqli->prepare(
             "SELECT id FROM comentarios
              WHERE aula_id LIKE ? AND " . condVisibilidadeSql() . "
              ORDER BY id DESC LIMIT ?"
         );
-        $stmt->bind_param('ssi', $like, $email, $limite);
+        $stmt->bind_param('ssii', $like, $email, $souOrientador, $limite);
     }
     $stmt->execute();
     $res = $stmt->get_result();
