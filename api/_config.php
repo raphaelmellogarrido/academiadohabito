@@ -15,19 +15,7 @@
 // Uso: require __DIR__ . '/_config.php'; e use $mysqli. Este arquivo não é
 // acessível direto via URL (bloqueado no .htaccess desta pasta).
 
-date_default_timezone_set('America/Sao_Paulo');
-
-// Deploy real: este arquivo vira public_html/api/_config.php, e private/ é
-// irmão de public_html na raiz da conta Hostinger -> 2 níveis acima.
-$configPrivado = __DIR__ . '/../../private/db_config.php';
-if (!file_exists($configPrivado)) {
-    // Fallback só pra teste manual fora da estrutura padrão da Hostinger.
-    $configPrivado = __DIR__ . '/../private/db_config.php';
-}
-
-if (file_exists($configPrivado)) {
-    require $configPrivado;
-}
+require_once __DIR__ . '/_privado.php'; // dá DB_HOST/DB_NAME/SESSION_SECRET
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -47,3 +35,23 @@ $mysqli->set_charset('utf8mb4');
 // Sessão MySQL fixa em Brasília, pra CURDATE()/NOW() baterem com o fuso do
 // aluno mesmo o servidor rodando em UTC (mesmo motivo do _conexao.php irmão).
 $mysqli->query("SET time_zone = '-03:00'");
+
+// Monta o mesmo shape de `Usuario` (useAuth.ts) a partir de uma linha de
+// `alunos` — usado por login.php e me.php, pra nunca desalinhar os dois.
+// `alunos.email` é a PK (não existe id numérico nessa tabela — mesmo
+// comentário em renato_de_paula/.../hotmart/_conexao.php linha ~311), por
+// isso vira o `id` aqui. `admin` sempre false: não existe esse conceito em
+// `alunos`, só controla o link "Admin" na TopBar (sem risco real).
+function alunoParaUsuario(array $aluno): array
+{
+    $partes = explode(' ', trim($aluno['nome'] ?? ''));
+    $primeiroNome = mb_substr($partes[0] ?? '', 0, 11);
+    return [
+        'id' => $aluno['email'],
+        'email' => $aluno['email'],
+        'nome' => $aluno['nome'] ?? '',
+        'primeiroNome' => $aluno['apelido'] ?: $primeiroNome,
+        'avatarUrl' => null, // avatar real fica pra quando esse card entrar
+        'admin' => false,
+    ];
+}

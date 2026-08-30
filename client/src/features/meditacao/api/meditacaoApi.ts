@@ -1,13 +1,13 @@
 import { api } from "../../../shared/lib/apiClient";
+import { ehProducaoReal } from "../../../shared/lib/ambiente";
 
-// "Meditando junto" é o único card já ligado no banco real (u790959747_comunidade
-// na Hostinger) — só em produção, via api/pulso.php (PHP, ver pasta na raiz do
-// projeto). academiadohabito.com.br hoje é hospedagem PHP/HTML "clássica" (sem
-// Node App), então o server/src (Express/TS) não roda lá; em dev continua tudo
-// mock por server/src/modules/gamification, como o resto do app. Remover esta
-// checagem quando o Node passar a rodar em produção também (ver docs/ARCHITECTURE.md).
-const ehProducaoReal =
-  typeof window !== "undefined" && window.location.hostname.endsWith("academiadohabito.com.br");
+// "Meditando junto" e "Sequência" já estão ligados no banco real
+// (u790959747_comunidade na Hostinger) — só em produção, via api/*.php (PHP,
+// ver pasta na raiz do projeto). academiadohabito.com.br hoje é hospedagem
+// PHP/HTML "clássica" (sem Node App), então o server/src (Express/TS) não
+// roda lá; em dev continua tudo mock por server/src/modules/gamification,
+// como o resto do app. Remover ehProducaoReal quando o Node passar a rodar
+// em produção também (ver docs/ARCHITECTURE.md).
 
 export interface Bolinha {
   iso: string;
@@ -105,7 +105,10 @@ export interface AulaComentario {
 }
 
 export const meditacaoApi = {
-  sequencia: () => api.get<{ ok: true } & Sequencia>("/meditacao/sequencia"),
+  sequencia: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true } & Sequencia>("/sequencia.php")
+      : api.get<{ ok: true } & Sequencia>("/meditacao/sequencia"),
   jornada: () => api.get<{ ok: true } & Jornada>("/meditacao/jornada"),
   meditandoJunto: () =>
     ehProducaoReal

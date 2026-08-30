@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/apiClient";
+import { ehProducaoReal } from "../lib/ambiente";
 
 export interface Usuario {
   id: string;
@@ -10,23 +11,27 @@ export interface Usuario {
   admin: boolean;
 }
 
-// requireAuth no server cai pro usuário demo quando não há sessão -> este
-// hook NUNCA fica em erro/vazio de verdade em dev; existe pra já deixar o
-// contrato pronto pro dia em que o login virar obrigatório de fato.
+// Em dev, requireAuth no server cai pro usuário demo quando não há sessão ->
+// este hook nunca fica em erro/vazio de verdade em localhost. Em produção
+// (ehProducaoReal) já é login real via api/me.php: sem sessão válida dá 401
+// mesmo, e o catch abaixo deixa `usuario: null` — quem usa este hook decide
+// o que fazer (redirecionar pro /login, ex.).
 export function useAuth() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    api
-      .get<{ ok: true; usuario: Usuario }>("/users/me")
+    (ehProducaoReal
+      ? api.get<{ ok: true; usuario: Usuario }>("/me.php")
+      : api.get<{ ok: true; usuario: Usuario }>("/users/me")
+    )
       .then((r) => setUsuario(r.usuario))
       .catch(() => setUsuario(null))
       .finally(() => setCarregando(false));
   }, []);
 
   async function sair() {
-    await api.post("/auth/logout");
+    await api.post(ehProducaoReal ? "/logout.php" : "/auth/logout");
     setUsuario(null);
     window.location.href = "/login";
   }

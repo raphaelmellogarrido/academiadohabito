@@ -34,14 +34,33 @@ projeto, deploy vira `public_html/api/`) lê direto do MySQL da Hostinger
 `renatodepaula.com` — credenciais em `private/db_config.php`, fora do Git e
 fora de `public_html`, subidas manualmente).
 
-O client decide a URL por `window.location.hostname` (ver `ehProducaoReal`
-em `meditacaoApi.ts`): em `academiadohabito.com.br` busca `/api/pulso.php`
-(PHP, dado real); em qualquer outro host (localhost incluído) busca
-`/api/meditacao/...` (Node, mock). Cada card migrado pra dado real ganha seu
-próprio `.php` aqui — não é uma segunda cópia da lógica de negócio, só
-leitura direta das mesmas tabelas que o PHP antigo já usa. Aposentar esta
-pasta inteira quando o Node passar a rodar em produção (Node App na
-Hostinger ou outro host).
+O client decide a URL por `window.location.hostname` (`ehProducaoReal` em
+`shared/lib/ambiente.ts`, único lugar que faz essa checagem): em
+`academiadohabito.com.br` busca `/api/*.php` (PHP, dado real); em qualquer
+outro host (localhost incluído) busca `/api/...` de sempre (Node, mock).
+Cada card migrado pra dado real ganha seu próprio `.php` aqui — não é uma
+segunda cópia da lógica de negócio, só leitura direta das mesmas tabelas que
+o PHP antigo já usa. Aposentar esta pasta inteira quando o Node passar a
+rodar em produção (Node App na Hostinger ou outro host).
+
+**Login real + sessão do aluno** (`login.php`, `logout.php`, `me.php`,
+`_sessao.php`) — cards por-aluno (ex: "Sequência") precisam saber quem está
+logado, e o app novo ainda não tem login de verdade (`auth.service.ts` é
+mock). `login.php` valida email+senha contra `alunos` (bcrypt `senha_hash`,
+mesma regra do `login.php` do site antigo) e, se ok, assina um cookie
+`ah_aluno` (HMAC com `SESSION_SECRET`, definido em `private/db_config.php` —
+**precisa ser adicionado manualmente lá**, não existe no repo). `_sessao.php`
+lê/valida esse cookie; qualquer `.php` que precise saber o aluno logado
+(`me.php`, `sequencia.php`) chama `exigirSessao()` no topo. Diferente do site
+antigo (que confiava num `email` cru mandado pelo client em cada chamada),
+aqui o cookie é assinado — não dá pra forjar sem o segredo.
+
+`api/sequencia.php` porta pro PHP o mesmo algoritmo de streak/bolinhas de
+`gamification.store.ts` (`calcularStreak`/`calcularBolinhas`), lendo
+`presencas` do aluno da sessão. Fica de fora desta rodada: "Meditei hoje"
+(grava em `presencas`) e a tela de "criar senha" pra quem comprou mas nunca
+definiu uma (login.php responde `precisaCriarSenha:true` nesse caso, sem
+fluxo de UI ainda).
 
 ## Rodando
 ```
