@@ -70,6 +70,35 @@ já cai matriculado só em "meditacao". `enrolled_at` é só cosmético (não
 aparece em lugar nenhum do client hoje) — usa `MIN(presencas.data)` do aluno
 quando existe, senão a data de hoje.
 
+Rodada seguinte migra o resto do dashboard de meditação pra dado real:
+`jornada.php` e `meditei-hoje.php` (POST, grava em `presencas`) reaproveitam
+`api/_habito.php` (`calcularSequencia`/`calcularJornada`, também usado pelo
+`sequencia.php` reescrito — elimina a duplicação que existia antes);
+`frase.php` lê `frase_motivacional_semana` (só `frase`+`subfrase`, o client
+remapeia `subfrase`→`autor` em `meditacaoApi.ts` pra não mudar
+`FraseSemana.tsx`); `desafios.php`/`desafios-alternar.php` usam
+`desafio_config`+`desafio_semana` já existentes via `api/_desafios.php`.
+
+"Próximo encontro ao vivo" (`encontro.php`/`encontro-reservar.php`) não
+reaproveita as tabelas antigas (`config_encontro`/`live_reservas`): a
+primeira tem campos freeform demais e a segunda mora num banco separado
+(`u790959747_clube`) sem credencial disponível. Em vez disso,
+`api/_encontro.php` cria duas tabelas novas, **self-provisioning**
+(`CREATE TABLE IF NOT EXISTS` + seed na primeira execução, mesmo padrão do
+`live/reservas.php` antigo) dentro do `u790959747_comunidade` já conectado:
+`ah_proximo_encontro` (1 linha, `id=1`, editada manualmente via phpMyAdmin
+com o encontro real) e `ah_encontro_reservas` (reserva por aluno).
+
+"Sua prática hoje" / feed (`feed.php`, `feed-reagir.php`,
+`feed-responder.php`, `imagem-comentario.php`) reaproveita `comentarios` e
+`comentario_reacoes` — tabelas já em uso (`pulso.php` já lê `comentarios`
+pra `partilhasHoje`), mesmo schema do `comentarios.php`/`imagem-comentario.php`
+do site antigo. `aula_id` fica fixo em `'geral'` (1 feed só, não por-aula).
+Lógica compartilhada (montagem de post, reações em lote anti-N+1) vive em
+`api/_feed.php`. Diferente do mock (que devolve todo post pra todo mundo),
+aqui a visibilidade é real: post `'privado'` só aparece pro próprio autor,
+já que agora é dado de múltiplos alunos de verdade.
+
 ## Rodando
 ```
 npm install

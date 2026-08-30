@@ -109,29 +109,60 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.get<{ ok: true } & Sequencia>("/sequencia.php")
       : api.get<{ ok: true } & Sequencia>("/meditacao/sequencia"),
-  jornada: () => api.get<{ ok: true } & Jornada>("/meditacao/jornada"),
+  jornada: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true } & Jornada>("/jornada.php")
+      : api.get<{ ok: true } & Jornada>("/meditacao/jornada"),
   meditandoJunto: () =>
     ehProducaoReal
       ? api.get<{ ok: true } & Pulso>("/pulso.php")
       : api.get<{ ok: true } & Pulso>("/meditacao/meditando-junto"),
   mediteiHoje: () =>
-    api.post<{ ok: true; jaMarcado: boolean; sequencia: Sequencia; jornada: Jornada }>("/meditacao/meditei-hoje"),
+    ehProducaoReal
+      ? api.post<{ ok: true; jaMarcado: boolean; sequencia: Sequencia; jornada: Jornada }>("/meditei-hoje.php")
+      : api.post<{ ok: true; jaMarcado: boolean; sequencia: Sequencia; jornada: Jornada }>("/meditacao/meditei-hoje"),
 
-  proximoEncontro: () => api.get<{ ok: true; encontro: Encontro }>("/meditacao/lives/proxima"),
-  reservar: () => api.post<{ ok: true; encontro: Encontro }>("/meditacao/lives/proxima/reservar"),
+  proximoEncontro: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true; encontro: Encontro }>("/encontro.php")
+      : api.get<{ ok: true; encontro: Encontro }>("/meditacao/lives/proxima"),
+  reservar: () =>
+    ehProducaoReal
+      ? api.post<{ ok: true; encontro: Encontro }>("/encontro-reservar.php")
+      : api.post<{ ok: true; encontro: Encontro }>("/meditacao/lives/proxima/reservar"),
 
-  desafios: () => api.get<{ ok: true; desafios: Desafio[] }>("/meditacao/desafios"),
-  alternarDesafio: (id: string) => api.post<{ ok: true; desafios: Desafio[] }>(`/meditacao/desafios/${id}/alternar`),
+  desafios: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true; desafios: Desafio[] }>("/desafios.php")
+      : api.get<{ ok: true; desafios: Desafio[] }>("/meditacao/desafios"),
+  alternarDesafio: (id: string) =>
+    ehProducaoReal
+      ? api.post<{ ok: true; desafios: Desafio[] }>("/desafios-alternar.php", { id })
+      : api.post<{ ok: true; desafios: Desafio[] }>(`/meditacao/desafios/${id}/alternar`),
 
-  frase: () => api.get<{ ok: true; frase: string; autor: string }>("/meditacao/frase"),
+  frase: () =>
+    ehProducaoReal
+      ? api
+          .get<{ ok: true; frase: string; subfrase: string }>("/frase.php")
+          .then(({ ok, frase, subfrase }) => ({ ok, frase, autor: subfrase }))
+      : api.get<{ ok: true; frase: string; autor: string }>("/meditacao/frase"),
 
-  feed: () => api.get<{ ok: true; posts: Post[] }>("/meditacao/feed"),
+  feed: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true; posts: Post[] }>("/feed.php")
+      : api.get<{ ok: true; posts: Post[] }>("/meditacao/feed"),
   postar: (texto: string, foto: string | null, publico: boolean, humor: Humor | null = null) =>
-    api.post<{ ok: true; post: Post }>("/meditacao/feed", { texto, foto, publico, humor }),
+    ehProducaoReal
+      ? api.post<{ ok: true; post: Post }>("/feed.php", { texto, foto, publico, humor })
+      : api.post<{ ok: true; post: Post }>("/meditacao/feed", { texto, foto, publico, humor }),
   reagir: (postId: string, reacao: "🙏" | "❤️" | "🔥") =>
-    api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/reagir`, { reacao }),
+    ehProducaoReal
+      ? api.post<{ ok: true; post: Post }>("/feed-reagir.php", { id: postId, reacao })
+      : api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/reagir`, { reacao }),
   responder: (postId: string, texto: string) =>
-    api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/responder`, { texto }),
+    ehProducaoReal
+      ? api.post<{ ok: true; post: Post }>("/feed-responder.php", { id: postId, texto })
+      : api.post<{ ok: true; post: Post }>(`/meditacao/feed/${postId}/responder`, { texto }),
 
   aulasProgresso: () => api.get<{ ok: true } & AulaProgresso>("/meditacao/aulas/progresso"),
   aulasConcluirDia: (dia: number) => api.post<{ ok: true } & AulaProgresso>("/meditacao/aulas/concluir", { dia }),
