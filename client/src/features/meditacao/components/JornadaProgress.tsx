@@ -18,7 +18,7 @@ export function JornadaProgress({ jornada, jaMarcouHoje }: { jornada: Jornada; j
     meditacaoApi.aulasProgresso().then(setProgresso);
   }, []);
 
-  const dias = progresso ? janelaDeDias(progresso.diaAtual, progresso.totalDias) : [];
+  const dias = progresso ? janelaDeDias(progresso.diaMaximoLiberado, progresso.totalDias) : [];
   const mostrarCta = !jaMarcouHoje && !jornada.jornadaCompleta;
 
   return (

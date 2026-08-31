@@ -6,7 +6,10 @@ import { ComentarioBloco } from "./ComentarioBloco";
 
 const LIMITE_TEXTO = 140;
 
-export function ComentariosAulas() {
+// `arquivoAtivo` é o vídeo que o aluno está assistindo agora (vem de
+// AulasPage/useAulas) — vai em cada comentário novo pra que o servidor grave
+// o "Dia X, Aula Y" exibido no badge (ver aulas.routes.ts::localizarDiaEAulaIndex).
+export function ComentariosAulas({ arquivoAtivo }: { arquivoAtivo: string }) {
   const {
     comentarios,
     carregando,
@@ -50,7 +53,7 @@ export function ComentariosAulas() {
     if (!texto.trim() && !foto) return;
     setEnviando(true);
     try {
-      const r = await meditacaoApi.aulasComentar(texto.trim(), foto);
+      const r = await meditacaoApi.aulasComentar(texto.trim(), arquivoAtivo, foto);
       adicionarComentario(r.comentario);
       setTexto("");
       setFoto(null);
@@ -124,7 +127,12 @@ export function ComentariosAulas() {
             key={c.id}
             no={c}
             nivel={0}
-            badge={<span className="cm-comentario-dia"> • Dia {c.diaAtual}</span>}
+            badge={
+              <span className="cm-comentario-dia">
+                {" "}
+                • Dia {c.dia}, Aula {c.aulaIndex}
+              </span>
+            }
             onReagir={aoReagir}
             onResponder={aoResponder}
             onEditar={aoEditar}

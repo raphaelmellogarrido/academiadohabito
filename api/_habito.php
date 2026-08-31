@@ -42,21 +42,25 @@ function calcularSequencia(array $datas): array
         $cursor->modify('-1 day');
     }
 
-    // Janela ROLANTE dos últimos 7 dias (hoje e os 6 anteriores) — não fica
-    // presa à semana de calendário (Dom-Sáb), senão o streak "some" toda vez
-    // que vira domingo mesmo sem a pessoa ter faltado nenhum dia. Só apaga
-    // bolinha quando o streak realmente quebra (gap > 1 dia).
+    // Semana de calendário Dom–Sáb que contém "hoje" — sempre começa no
+    // domingo, não numa janela rolante dos últimos 7 dias (senão a fileira
+    // passa a começar em qualquer dia da semana dependendo de que dia é
+    // hoje, ex.: terça). Bolinha marcada por POSIÇÃO relativa a hoje dentro
+    // do streak atual; dias futuros da semana ficam vazios.
     $offsetAncora = isset($datas[$hoje->format('Y-m-d')]) ? 0 : 1;
     $labels = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
+    $domingo = clone $hoje;
+    $domingo->modify('-' . $hoje->format('w') . ' days');
+
     $bolinhas = [];
     for ($i = 0; $i < 7; $i++) {
-        $diasAtras = 6 - $i;
-        $data = clone $hoje;
-        $data->modify("-{$diasAtras} days");
+        $data = clone $domingo;
+        $data->modify("+{$i} days");
+        $diasAtras = (int) round(($hoje->getTimestamp() - $data->getTimestamp()) / 86400);
         $bolinhas[] = [
             'iso' => $data->format('Y-m-d'),
-            'label' => $labels[(int) $data->format('w')],
+            'label' => $labels[$i],
             'concluido' => $diasAtras >= $offsetAncora && $diasAtras < $offsetAncora + $streak,
             'hoje' => $diasAtras === 0,
         ];

@@ -3,8 +3,9 @@
 // /meditacao/aulas/comentarios/:id/responder. `id` pode ser o comentário
 // raiz ou qualquer resposta dele em qualquer profundidade — thread
 // recursiva sem limite de nível (mesmo padrão de feed-responder.php).
-// A resposta herda o MESMO aula_id "aulas:{dia}" da raiz (não o do pai
-// direto, embora dê no mesmo por transitividade) — é o que faz o filtro
+// A resposta herda o MESMO aula_id "aulas:{dia}:{aulaIndex}:{arquivo}" da
+// raiz (não o do pai direto, embora dê no mesmo por transitividade) — é o
+// que faz o filtro
 // `aula_id LIKE 'aulas:%'` usado por aulas-comentario-editar.php/
 // -visibilidade.php/-excluir.php continuar enxergando qualquer nível da
 // thread, e o que dá pra montarAulaComentario calcular diaAtual sem

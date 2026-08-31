@@ -2,7 +2,8 @@
 // GET/POST /api/aulas-comentarios.php — real de GET/POST
 // /meditacao/aulas/comentarios. Tabelas reais já existentes
 // (comentarios/comentario_reacoes) — ver _aulas.php pro porquê do aula_id
-// no formato "aulas:{dia}" e pro shape de AulaComentario reconstruído.
+// no formato "aulas:{dia}:{aulaIndex}:{arquivo}" e pro shape de
+// AulaComentario reconstruído.
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
@@ -67,12 +68,11 @@ if ($metodo === 'GET') {
 }
 
 if ($metodo === 'POST') {
-    garantirTabelaAulasProgresso($mysqli);
-
     $input = json_decode(file_get_contents('php://input'), true) ?: [];
     $texto = trim($input['texto'] ?? '');
     $fotoDataUri = $input['foto'] ?? null;
     $publico = !array_key_exists('publico', $input) || $input['publico'] ? true : false;
+    $arquivo = trim($input['arquivo'] ?? '');
 
     if ($texto === '' && !$fotoDataUri) {
         http_response_code(400);
@@ -81,6 +81,16 @@ if ($metodo === 'POST') {
     }
     if (mb_strlen($texto) > 140) {
         $texto = mb_substr($texto, 0, 140);
+    }
+
+    // Dia/aula ficam gravados a partir do vídeo que o client diz estar ativo
+    // no momento do comentário — é o que faz o badge "Dia X, Aula Y" no feed
+    // de aulas (ver aulas.routes.ts::localizarDiaEAulaIndex, mesmo contrato).
+    $alvo = localizarDiaEAulaIndexAula(getCatalogoAulas(), $arquivo);
+    if (!$alvo) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'erro' => 'vídeo ativo inválido']);
+        exit;
     }
 
     $stmtNome = $mysqli->prepare("SELECT nome FROM alunos WHERE email = ? LIMIT 1");
@@ -101,8 +111,7 @@ if ($metodo === 'POST') {
         }
     }
 
-    $diaAtual = montarProgresso($mysqli, $email)['diaAtual'];
-    $aulaId = AULA_ID_PREFIXO . $diaAtual;
+    $aulaId = codificarAulaId($alvo['dia'], $alvo['aulaIndex'], $arquivo);
     $visibilidade = $publico ? 'publico' : 'privado';
     $parentId = null;
 

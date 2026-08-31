@@ -17,6 +17,9 @@ export default defineConfig({
       "/api": "http://localhost:3001",
       // Fotos de perfil servidas estaticamente pelo Express (ver common/app.ts).
       "/uploads": "http://localhost:3001",
+      // Vídeos do curso de meditação, também servidos estaticamente (ver
+      // common/app.ts e aulas.catalogo.ts::pastaCursoMeditacao).
+      "/curso-meditacao-raiz": "http://localhost:3001",
     },
   },
 });

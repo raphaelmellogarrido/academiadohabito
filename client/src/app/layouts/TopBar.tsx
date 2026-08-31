@@ -112,7 +112,7 @@ export function TopBar({ usuario, onSair }: { usuario: Usuario; onSair: () => vo
           </NavLink>
 
           <a href={linkWhatsapp} target="_blank" rel="noreferrer" className="cm-wpp-btn">
-            Posso ajudar? WhatsApp
+            Posso ajudar?
           </a>
 
           <div className="cm-profile">

@@ -126,8 +126,8 @@ export function ComentarioBloco({
         <div className="cm-post-cabecalho-topo">
           <div>
             <strong>{no.nome}</strong>
-            {/* {no.admin && <span className="cm-badge-admin">ADMINISTRADOR</span>}
-            {badge} */}
+            {no.admin && <span className="cm-badge-admin">ADMINISTRADOR</span>}
+            {badge}
           </div>
           <div className="cm-comentario-icones">
             {/* Resposta não tem opção de visibilidade própria: ela segue

@@ -1,7 +1,6 @@
 <?php
-// GET /api/aulas-progresso.php — real de GET /meditacao/aulas/progresso.
-// Tabela self-provisioning em _aulas.php (com migração automática do schema
-// antigo, bloco de 3 dias) — ver comentário lá.
+// GET /api/aulas-catalogo.php — real de GET /meditacao/aulas/catalogo.
+// Ver _aulas.php pro algoritmo (mesmo de aulas.catalogo.ts::montarCatalogo).
 header('Access-Control-Allow-Origin: https://academiadohabito.com.br');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
@@ -13,12 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 require __DIR__ . '/_sessao.php';
-$email = exigirSessao();
+exigirSessao();
 
 require __DIR__ . '/_config.php';
 require __DIR__ . '/_aulas.php';
 
-garantirTabelaAulasProgresso($mysqli);
-$progresso = montarProgresso($mysqli, $email);
-
-echo json_encode(['ok' => true] + $progresso);
+echo json_encode(['ok' => true, 'dias' => getCatalogoAulas()]);

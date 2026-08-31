@@ -2,7 +2,7 @@
 // PUT /api/aulas-comentario-editar.php — real de PUT
 // /meditacao/aulas/comentarios/:id. `id` pode ser o comentário raiz ou
 // qualquer resposta dele em qualquer profundidade (toda linha da thread
-// carrega o mesmo aula_id "aulas:{dia}" da raiz, ver
+// carrega o mesmo aula_id "aulas:{dia}:{aulaIndex}:{arquivo}" da raiz, ver
 // aulas-comentario-responder.php, então o filtro abaixo já cobre qualquer
 // nível). Editar texto é sempre só do dono DAQUELE nó específico, sem bypass
 // de orientador/admin (mesmo contrato do mock em

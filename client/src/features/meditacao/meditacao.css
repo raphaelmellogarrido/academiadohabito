@@ -1167,10 +1167,10 @@
 
 .cm-dia-select {
   width: 100%;
-  padding: 9px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--cor-borda);
-  border-radius: 9px;
-  font-size: 13.5px;
+  border-radius: 7px;
+  font-size: 12px;
   background: var(--cor-creme);
 }
 
@@ -1187,6 +1187,31 @@
 .cm-jornada-status--pausa {
   color: var(--cor-dourado);
   font-weight: 600;
+}
+
+/* Banner "Pausa obrigatória" (3-dias-faz/4-dias-pausa) — mesmo tom âmbar do
+   projeto irmão (ComunidadeApp.css), fundo suave pra não competir com o
+   vídeo logo abaixo. Só existe enquanto o próximo dia estiver em pausa (ver
+   emPausaObrigatoria em useAulas.ts). */
+.cm-pausa-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(224, 185, 120, 0.14);
+  border: 1px solid rgba(224, 185, 120, 0.4);
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: var(--cor-texto);
+}
+
+.cm-pausa-banner-icone {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.cm-pausa-banner strong {
+  color: #a97f2e;
 }
 
 .cm-jornada-status--concluido {
@@ -1346,4 +1371,250 @@
 .cm-visibilidade-opcao.is-ativa {
   font-weight: 600;
   background: var(--cor-creme);
+}
+
+/* Sidebar "vídeos do dia" (CardDia.tsx) — dropdown de dia + lista de vídeos
+   com cadeado/check, porta o layout de
+   renato_de_paula/src/pages/comunidade/AulasMeditacaoRaiz.jsx. Card
+   compacto (pedido do cliente: reduzir pela metade) — paddings/gaps/fontes
+   menores que o resto dos cartões da página. */
+.cm-aula-videos-do-dia-cabecalho {
+  margin-bottom: 7px;
+}
+
+.cm-aula-videos-do-dia-cabecalho .cartao-titulo {
+  margin-bottom: 4px;
+}
+
+.cm-video-item-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cm-video-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  background: none;
+  text-align: left;
+  padding: 5px 8px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.cm-video-item:hover {
+  background: var(--cor-creme);
+}
+
+.cm-video-item.is-ativo {
+  background: var(--cor-creme);
+  border-color: var(--cor-roxo);
+  font-weight: 600;
+}
+
+.cm-video-item.is-bloqueado {
+  color: var(--cor-texto-suave);
+  cursor: not-allowed;
+}
+
+.cm-video-item-dot {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--cor-borda);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cm-video-item-dot.is-concluido {
+  background: var(--cor-verde);
+  border-color: var(--cor-verde);
+  color: #fff;
+}
+
+.cm-video-check {
+  display: block;
+}
+
+.cm-video-item-titulo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-video-item-lock {
+  flex-shrink: 0;
+  color: var(--cor-texto-suave);
+}
+
+/* Toast de bloqueio (useAulas::selecionarVideo) */
+.cm-aula-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 20, 0.92);
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: var(--sombra);
+  z-index: 40;
+  max-width: min(90vw, 420px);
+  text-align: center;
+}
+
+.cm-jornada-status--praticar {
+  color: var(--cor-roxo);
+  font-weight: 600;
+}
+
+.cm-video-concluir.is-concluida {
+  background: var(--cor-verde);
+}
+
+/* GuardedVideo (player custom só-retrocede / fullscreen próprio) — porta
+   renato_de_paula, classes .guarded-video*. */
+.guarded-video {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  outline: none;
+}
+
+.guarded-video video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+
+.guarded-video-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  z-index: 2;
+}
+
+.guarded-video-toggle {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.guarded-video:hover .guarded-video-toggle,
+.guarded-video-toggle.is-playing {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.guarded-video-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 10px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.65), transparent);
+}
+
+.guarded-video-buttons-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guarded-video-buttons-row button {
+  border: none;
+  background: none;
+  color: #fff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.guarded-video-volume-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.guarded-video-volume-popup {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) rotate(-90deg);
+  transform-origin: center;
+  width: 70px;
+}
+
+.guarded-video-skip {
+  font-size: 11px !important;
+  font-weight: 600;
+}
+
+.guarded-video-seekbar {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--cor-roxo);
+}
+
+.guarded-video-rotate.is-active {
+  color: var(--cor-dourado);
+}
+
+.guarded-video-erro {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 54px;
+  z-index: 3;
+}
+
+/* Fallback de rotação por CSS puro (iOS Safari não suporta
+   screen.orientation.lock) — gira o player 90° visualmente. */
+.guarded-video.is-rotated-css {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  width: 100vh;
+  height: 100vw;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
 }

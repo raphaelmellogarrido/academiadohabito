@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../users/users.middleware.js";
-import { getProgresso, concluirDia } from "./aulas.store.js";
+import { getCatalogo, getProgresso, marcarConcluida, desmarcarConcluida, localizarDiaEAulaIndex } from "./aulas.store.js";
 import {
   listarComentarios,
   criarComentario,
@@ -17,6 +17,10 @@ const VISIBILIDADES: Visibilidade[] = ["publico", "privado", "orientador"];
 
 export const aulasRouter = Router();
 
+aulasRouter.get("/meditacao/aulas/catalogo", requireAuth, (_req, res) => {
+  res.json({ ok: true, dias: getCatalogo() });
+});
+
 aulasRouter.get("/meditacao/aulas/progresso", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
   res.json({ ok: true, ...getProgresso(usuario.id) });
@@ -24,10 +28,20 @@ aulasRouter.get("/meditacao/aulas/progresso", requireAuth, (req, res) => {
 
 aulasRouter.post("/meditacao/aulas/concluir", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
-  const dia = Number(req.body?.dia);
-  if (!Number.isInteger(dia)) return res.status(400).json({ erro: "dia inválido" });
-  const progresso = concluirDia(usuario.id, dia);
-  if (!progresso) return res.status(400).json({ erro: "esse dia não está liberado agora" });
+  const arquivo = String(req.body?.arquivo ?? "");
+  if (!arquivo) return res.status(400).json({ erro: "arquivo inválido" });
+  const progresso = marcarConcluida(usuario.id, arquivo);
+  if (!progresso) return res.status(400).json({ erro: "esse vídeo não está liberado agora" });
+  res.json({ ok: true, ...progresso });
+});
+
+// arquivo vem na query string (não no corpo — api.delete() do client não
+// manda body), mesmo padrão de .../comentarios/:id via DELETE.
+aulasRouter.delete("/meditacao/aulas/concluir", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  const arquivo = typeof req.query.arquivo === "string" ? req.query.arquivo : "";
+  if (!arquivo) return res.status(400).json({ erro: "arquivo inválido" });
+  const progresso = desmarcarConcluida(usuario.id, arquivo);
   res.json({ ok: true, ...progresso });
 });
 
@@ -39,12 +53,18 @@ aulasRouter.get("/meditacao/aulas/comentarios", requireAuth, (req, res) => {
 
 aulasRouter.post("/meditacao/aulas/comentarios", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
-  const { texto = "", foto = null, visibilidade = "publico" } = req.body ?? {};
+  const { texto = "", foto = null, visibilidade = "publico", arquivo = "" } = req.body ?? {};
   if (!String(texto).trim() && !foto) return res.status(400).json({ erro: "comentário vazio" });
   if (String(texto).length > LIMITE_TEXTO) return res.status(400).json({ erro: `máximo ${LIMITE_TEXTO} caracteres` });
   const visibilidadeValida = VISIBILIDADES.includes(visibilidade) ? visibilidade : "publico";
-  const diaAtual = getProgresso(usuario.id).diaAtual;
-  const comentario = criarComentario(usuario, diaAtual, String(texto), foto, visibilidadeValida);
+
+  // Dia/aula ficam gravados a partir do vídeo que o client diz estar ativo
+  // no momento do comentário (ver GET /meditacao/aulas/catalogo) — é o que
+  // faz o badge "Dia X, Aula Y" no feed de aulas.
+  const alvo = localizarDiaEAulaIndex(String(arquivo));
+  if (!alvo) return res.status(400).json({ erro: "vídeo ativo inválido" });
+
+  const comentario = criarComentario(usuario, alvo.dia, alvo.aulaIndex, String(texto), foto, visibilidadeValida);
   res.status(201).json({ ok: true, comentario });
 });
 

@@ -104,19 +104,44 @@ export interface Post extends NoComentario {
   humor: Humor | null;
 }
 
+export interface VideoAula {
+  arquivo: string;
+  titulo: string;
+  url: string;
+}
+
+export interface DiaAulas {
+  dia: number;
+  titulo: string;
+  videos: VideoAula[];
+}
+
+export interface AulaProgressoArquivo {
+  assistida: boolean;
+  progresso: number;
+  completadoEm: string | null;
+}
+
+// Progresso por VÍDEO (não mais 1 "aula" = 1 dia) — cada dia libera inteiro
+// (todos os vídeos) de uma vez, calendário BRT, sem pausa obrigatória. Ver
+// server/src/modules/aulas/aulas.store.ts::getProgresso.
 export interface AulaProgresso {
   totalDias: number;
-  diaAtual: number;
+  totalVideos: number;
+  totalConcluidos: number;
   diaMaximoLiberado: number;
   diasConcluidos: number[];
-  bloqueado: boolean;
-  status: "concluido" | "praticar" | "pausa";
-  mensagem: string;
+  jornadaCompleta: boolean;
   percentual: number;
+  progressoPorArquivo: Record<string, AulaProgressoArquivo>;
+  // Data de hoje (YYYY-MM-DD, fuso Brasília) segundo o SERVIDOR — ver
+  // client/src/features/meditacao/lib/progressoDias.ts::podeAssistir.
+  hoje: string;
 }
 
 export interface AulaComentario extends NoComentario {
-  diaAtual: number;
+  dia: number; // dia da trilha em que o usuário estava assistindo ao comentar
+  aulaIndex: number; // posição do vídeo dentro do dia (1-based)
 }
 
 export const meditacaoApi = {
@@ -208,14 +233,24 @@ export const meditacaoApi = {
       ? api.delete<{ ok: true; raizId: string; raiz: Post | null }>(`/feed-excluir.php?id=${id}`)
       : api.delete<{ ok: true; raizId: string; raiz: Post | null }>(`/meditacao/feed/${id}`),
 
+  aulasCatalogo: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true; dias: DiaAulas[] }>("/aulas-catalogo.php")
+      : api.get<{ ok: true; dias: DiaAulas[] }>("/meditacao/aulas/catalogo"),
   aulasProgresso: () =>
     ehProducaoReal
       ? api.get<{ ok: true } & AulaProgresso>("/aulas-progresso.php")
       : api.get<{ ok: true } & AulaProgresso>("/meditacao/aulas/progresso"),
-  aulasConcluirDia: (dia: number) =>
+  aulasMarcarConcluida: (arquivo: string) =>
     ehProducaoReal
-      ? api.post<{ ok: true } & AulaProgresso>("/aulas-concluir.php", { dia })
-      : api.post<{ ok: true } & AulaProgresso>("/meditacao/aulas/concluir", { dia }),
+      ? api.post<{ ok: true } & AulaProgresso>("/aulas-concluir.php", { arquivo })
+      : api.post<{ ok: true } & AulaProgresso>("/meditacao/aulas/concluir", { arquivo }),
+  // DELETE sem corpo (ver apiClient.ts::api.delete) — arquivo vai na query
+  // string, mesmo padrão de aulasExcluirComentario abaixo.
+  aulasDesmarcar: (arquivo: string) =>
+    ehProducaoReal
+      ? api.delete<{ ok: true } & AulaProgresso>(`/aulas-concluir.php?arquivo=${encodeURIComponent(arquivo)}`)
+      : api.delete<{ ok: true } & AulaProgresso>(`/meditacao/aulas/concluir?arquivo=${encodeURIComponent(arquivo)}`),
   aulasComentarios: (cursor: string | null) =>
     ehProducaoReal
       ? api.get<{ ok: true; comentarios: AulaComentario[]; proximoCursor: string | null }>(
@@ -224,14 +259,27 @@ export const meditacaoApi = {
       : api.get<{ ok: true; comentarios: AulaComentario[]; proximoCursor: string | null }>(
           `/meditacao/aulas/comentarios${cursor ? `?cursor=${cursor}` : ""}`,
         ),
-  aulasComentar: (texto: string, foto: string | null = null, visibilidade: Visibilidade = "publico") =>
+  // `arquivo` é o vídeo ativo no momento do comentário — o servidor resolve
+  // dia/aulaIndex a partir dele (ver aulas.routes.ts) pro badge "Dia X, Aula Y".
+  aulasComentar: (
+    texto: string,
+    arquivo: string,
+    foto: string | null = null,
+    visibilidade: Visibilidade = "publico",
+  ) =>
     ehProducaoReal
       ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentarios.php", {
           texto,
           foto,
+          arquivo,
           publico: visibilidade === "publico",
         })
-      : api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", { texto, foto, visibilidade }),
+      : api.post<{ ok: true; comentario: AulaComentario }>("/meditacao/aulas/comentarios", {
+          texto,
+          foto,
+          arquivo,
+          visibilidade,
+        }),
   aulasReagir: (id: string, reacao: "🙏" | "❤️" | "🔥") =>
     ehProducaoReal
       ? api.post<{ ok: true; comentario: AulaComentario }>("/aulas-comentario-reagir.php", { id, reacao })

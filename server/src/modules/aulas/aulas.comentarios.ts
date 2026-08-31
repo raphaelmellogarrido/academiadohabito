@@ -23,7 +23,8 @@ export interface NoComentario {
 }
 
 export interface AulaComentario extends NoComentario {
-  diaAtual: number;
+  dia: number; // dia da trilha em que o usuário estava assistindo ao comentar
+  aulaIndex: number; // posição do vídeo dentro do dia (1-based)
 }
 
 const LIMITE_TEXTO = 140;
@@ -38,7 +39,8 @@ const COMENTARIOS: AulaComentario[] = [
     userId: "demo",
     nome: "Raphael Silva",
     admin: false,
-    diaAtual: 3,
+    dia: 2,
+    aulaIndex: 3,
     texto: "Essa aula sobre respiração mudou minha semana 🙏",
     foto: null,
     visibilidade: "publico",
@@ -52,7 +54,8 @@ const COMENTARIOS: AulaComentario[] = [
     userId: "admin-seed",
     nome: "Dr. Renato",
     admin: true,
-    diaAtual: 3,
+    dia: 2,
+    aulaIndex: 1,
     texto: "Bem-vindos à aula de hoje! Lembrem-se: não existe meditação perfeita, existe meditação praticada. 🪷",
     foto: null,
     visibilidade: "publico",
@@ -128,7 +131,8 @@ export function listarComentarios(cursor: string | null, usuarioAtual: { id: str
 
 export function criarComentario(
   usuario: { id: string; nome: string; admin: boolean },
-  diaAtual: number,
+  dia: number,
+  aulaIndex: number,
   texto: string,
   foto: string | null = null,
   visibilidade: Visibilidade = "publico",
@@ -138,7 +142,8 @@ export function criarComentario(
     userId: usuario.id,
     nome: usuario.nome,
     admin: usuario.admin,
-    diaAtual,
+    dia,
+    aulaIndex,
     texto: texto.slice(0, LIMITE_TEXTO),
     foto,
     visibilidade,
