@@ -3,6 +3,7 @@ import { Image as ImageIcon } from "lucide-react";
 import { meditacaoApi, type Visibilidade } from "../api/meditacaoApi";
 import { useAulaComentarios } from "../hooks/useAulaComentarios";
 import { ComentarioBloco } from "./ComentarioBloco";
+import { FotoAnexo } from "./FotoAnexo";
 
 const LIMITE_TEXTO = 140;
 
@@ -104,7 +105,7 @@ export function ComentariosAulas({ arquivoAtivo }: { arquivoAtivo: string }) {
           placeholder="Deixe um comentário sobre a aula (texto ou emoji)…"
           onChange={(e) => setTexto(e.target.value)}
         />
-        {foto && <img src={foto} alt="" className="cm-feed-composer-foto" />}
+        {foto && <FotoAnexo src={foto} />}
         <div className="cm-comentarios-composer-rodape">
           <button type="button" className="cm-feed-composer-foto-btn" onClick={() => inputFoto.current?.click()}>
             <ImageIcon size={16} />

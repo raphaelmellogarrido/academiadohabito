@@ -3,6 +3,7 @@ import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
 import { meditacaoApi, type Humor } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
 import { ComentarioBloco } from "./ComentarioBloco";
+import { FotoAnexo } from "./FotoAnexo";
 import { useFeed } from "../hooks/useFeed";
 
 const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; tag?: string }> = {
@@ -199,7 +200,7 @@ export function Feed() {
             {texto.length}/{LIMITE_TEXTO}
           </span>
         </div>
-        {foto && <img src={foto} alt="" className="cm-feed-composer-foto" />}
+        {foto && <FotoAnexo src={foto} />}
 
         <div className="cm-feed-composer-rodape">
           <VisibilityToggle value={visibilidade} onChange={setVisibilidade} />

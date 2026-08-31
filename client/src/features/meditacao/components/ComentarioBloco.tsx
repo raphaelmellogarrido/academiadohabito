@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import type { NoComentario, Visibilidade } from "../api/meditacaoApi";
 import { VisibilidadeIcone } from "./VisibilidadeIcone";
+import { FotoAnexo } from "./FotoAnexo";
 
 const REACOES: ("🙏" | "❤️" | "🔥")[] = ["🙏", "❤️", "🔥"];
 const LIMITE_TEXTO = 140;
@@ -165,7 +166,7 @@ export function ComentarioBloco({
       ) : (
         <p className="cm-post-texto">{no.texto}</p>
       )}
-      {no.foto && <img src={no.foto} alt="" className="cm-post-foto" />}
+      {no.foto && <FotoAnexo src={no.foto} />}
 
       <div className="cm-post-acoes">
         <button type="button" className="cm-post-responder" onClick={alternarResposta}>

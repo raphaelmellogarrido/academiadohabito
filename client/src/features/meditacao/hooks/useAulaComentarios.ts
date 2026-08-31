@@ -26,9 +26,19 @@ export function useAulaComentarios() {
   // da 1ª carga, cada tick só atualiza por id quem já está na lista (em
   // qualquer página) e insere no topo quem ainda não apareceu — `cursor`/
   // `temMais` ficam intocados (só avançam via carregarMais).
+  //
+  // Exclusão: um id que estava na página 1 do tick anterior e sumiu da
+  // página 1 deste tick foi apagado por alguém — remove do estado local.
+  // `idsPagina1Ref` guarda só ids vistos via poll (nunca os de páginas 2+
+  // carregadas por "carregar mais"), então isso nunca derruba um comentário
+  // que só saiu da janela da página 1 por paginação.
   const primeiraCargaFeita = useRef(false);
+  const idsPagina1Ref = useRef<Set<string>>(new Set());
   const pollarPrimeiraPagina = useCallback(async () => {
     const r = await meditacaoApi.aulasComentarios(null);
+    const idsPagina1Antes = idsPagina1Ref.current;
+    const idsPagina1Agora = new Set(r.comentarios.map((c) => c.id));
+    idsPagina1Ref.current = idsPagina1Agora;
     if (!primeiraCargaFeita.current) {
       primeiraCargaFeita.current = true;
       setComentarios(r.comentarios);
@@ -39,7 +49,8 @@ export function useAulaComentarios() {
     }
     setComentarios((atual) => {
       const idsAtuais = new Set(atual.map((c) => c.id));
-      const atualizados = atual.map((c) => r.comentarios.find((n) => n.id === c.id) ?? c);
+      const semExcluidos = atual.filter((c) => !idsPagina1Antes.has(c.id) || idsPagina1Agora.has(c.id));
+      const atualizados = semExcluidos.map((c) => r.comentarios.find((n) => n.id === c.id) ?? c);
       const novosDeVerdade = r.comentarios.filter((n) => !idsAtuais.has(n.id));
       return [...novosDeVerdade, ...atualizados];
     });
