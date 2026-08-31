@@ -25,10 +25,19 @@ if (!defined('DB_HOST') || !defined('DB_NAME')) {
     exit;
 }
 
-$mysqli = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-if ($mysqli->connect_error) {
+// Timeout de conexão explícito (5s) — sem isso, o mysqli usa o timeout TCP
+// default do sistema (frequentemente ~60s), e se o MySQL do hosting
+// compartilhado estiver momentaneamente sobrecarregado (cada request do site
+// abre sua própria conexão nova), o PHP fica preso tentando conectar sem
+// devolver resposta nenhuma — o fetch do browser fica pendurado esse tempo
+// todo e a tela do client trava em "Carregando…" sem erro visível. Com o
+// timeout curto, falha rápido e devolve um 500 com JSON de erro de verdade.
+$mysqli = mysqli_init();
+$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
+$conectou = @$mysqli->real_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+if (!$conectou) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'erro' => 'Erro banco: ' . $mysqli->connect_error]);
+    echo json_encode(['ok' => false, 'erro' => 'Erro banco: ' . mysqli_connect_error()]);
     exit;
 }
 $mysqli->set_charset('utf8mb4');
