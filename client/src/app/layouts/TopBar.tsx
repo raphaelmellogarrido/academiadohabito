@@ -106,10 +106,10 @@ export function TopBar({ usuario, onSair }: { usuario: Usuario; onSair: () => vo
         </nav>
 
         <div className="cm-topbar-right">
-          <NavLink to="/app/mensagens" className="cm-msg-btn">
+          {/* <NavLink to="/app/mensagens" className="cm-msg-btn">
             <Mail size={16} />
             Mensagens
-          </NavLink>
+          </NavLink> */}
 
           <a href={linkWhatsapp} target="_blank" rel="noreferrer" className="cm-wpp-btn">
             Posso ajudar?
