@@ -1,6 +1,16 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
-import { EmojiStyle, type EmojiClickData } from "emoji-picker-react";
+// Import só de tipos (apagado em tempo de compilação, não gera "import"
+// de verdade no bundle) — de propósito: importar EmojiStyle como valor
+// aqui criava uma segunda rota de import pro mesmo módulo que já é
+// lazy-loaded ali embaixo (lazy(() => import("emoji-picker-react"))),
+// e isso fazia o Vite jogar a lib inteira pro chunk principal no build
+// de produção. Efeito visual: os ícones de categoria (sprite CSS
+// gerado via classe injetada pela lib) ficavam invisíveis — a classe
+// certa, o clique funcionando, mas nenhum background-image aplicado —
+// porque a instância do módulo que injeta o <style> não batia mais com
+// a instância renderizada. "native" abaixo é o valor de EmojiStyle.NATIVE.
+import type { EmojiClickData, EmojiStyle } from "emoji-picker-react";
 import { meditacaoApi, type Humor } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
 import { ComentarioBloco } from "./ComentarioBloco";
@@ -193,7 +203,7 @@ export function Feed() {
                       reportado: "não dá pra ver nada"). Native usa a fonte
                       de emoji do SO, renderiza na hora e não depende de
                       rede. */}
-                  <EmojiPicker onEmojiClick={(dados: EmojiClickData) => inserirNoCursor(dados.emoji)} width="100%" height={360} previewConfig={{ showPreview: false }} emojiStyle={EmojiStyle.NATIVE} />
+                  <EmojiPicker onEmojiClick={(dados: EmojiClickData) => inserirNoCursor(dados.emoji)} width="100%" height={360} previewConfig={{ showPreview: false }} emojiStyle={"native" as EmojiStyle} />
                 </Suspense>
               </div>
             )}
