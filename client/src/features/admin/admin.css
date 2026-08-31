@@ -1,5 +1,5 @@
 .adm-pagina {
-  max-width: 920px;
+  max-width: 1320px;
 }
 
 .adm-titulo {
@@ -9,9 +9,15 @@
 
 .adm-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .adm-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 860px) {
