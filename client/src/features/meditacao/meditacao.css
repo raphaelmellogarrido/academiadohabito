@@ -771,8 +771,8 @@
    independente do tamanho original da imagem (object-fit: cover corta em
    vez de distorcer). */
 .cm-foto-anexo {
-  width: 32px;
-  height: 32px;
+  width: 80px;
+  height: 80px;
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--cor-borda);
