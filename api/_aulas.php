@@ -101,10 +101,14 @@ const TITULOS_AULAS_RAIZ = [
 const ARQUIVOS_OCULTOS_AULAS_RAIZ = ['dia1.3.mp4' => true];
 
 // Pasta com os .mp4 reais — mesma altura de public_html na Hostinger (irmã
-// dela, fora do repo, sobe por FTP), mesmo padrão de dois candidatos que
-// private/db_config.php usa em _privado.php (produção: 2 níveis acima de
-// api/; dev local: 1 nível acima, api/ e curso-meditacao-raiz são irmãos na
-// raiz do projeto).
+// dela, fora do repo, sobe por FTP; fica fora do document root DE PROPÓSITO
+// pra sobreviver a deploy via git, que apaga tudo dentro de public_html a
+// cada push), mesmo padrão de dois candidatos que private/db_config.php usa
+// em _privado.php (produção: 2 níveis acima de api/; dev local: 1 nível
+// acima, api/ e curso-meditacao-raiz são irmãos na raiz do projeto). Por
+// estar fora do document root, os .mp4 NUNCA são expostos por URL estática
+// direta — só streamados por aulas-video.php (ver montarCatalogoAulas
+// abaixo), que também exige sessão.
 function pastaCursoMeditacao(): string
 {
     $producao = __DIR__ . '/../../curso-meditacao-raiz';
@@ -142,7 +146,11 @@ function montarCatalogoAulas(): array
         }
         $dia = (int) $m[1];
         $posicao = (int) $m[2];
-        $porDia[$dia][] = ['arquivo' => $arquivo, 'titulo' => $titulo, 'url' => "/curso-meditacao-raiz/$arquivo", 'posicao' => $posicao];
+        // URL de API, não caminho estático — a pasta real fica fora de
+        // public_html (ver comentário de pastaCursoMeditacao acima), então o
+        // Apache não enxerga o arquivo por URL direta. aulas-video.php lê do
+        // disco e transmite (stream) o binário, com Range pro seek do player.
+        $porDia[$dia][] = ['arquivo' => $arquivo, 'titulo' => $titulo, 'url' => '/api/aulas-video.php?arquivo=' . rawurlencode($arquivo), 'posicao' => $posicao];
     }
 
     ksort($porDia);
