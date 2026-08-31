@@ -98,17 +98,34 @@ function alunoParaUsuario(array $aluno): array
 // alunoParaUsuario) e por perfil-atualizar.php/avatar.php.
 function garantirColunasPerfil(mysqli $mysqli): void
 {
-    $existe = $mysqli->query(
-        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'alunos' AND COLUMN_NAME = 'avatar_blob'"
-    )->fetch_assoc();
-    if ($existe) {
+    // Checa as 3 colunas individualmente (não só avatar_blob) — o banco
+    // `alunos` é o mesmo schema do Clube Presença, que já tinha uma coluna
+    // avatar_blob própria antes dessa feature existir aqui; checar só ela
+    // fazia a função sair cedo e nunca criar avatar_mime/avatar_versao,
+    // causando "Unknown column 'avatar_mime'" no UPDATE de perfil-atualizar.php.
+    $definicoes = [
+        'avatar_blob' => 'avatar_blob MEDIUMBLOB NULL',
+        'avatar_mime' => 'avatar_mime VARCHAR(50) NULL',
+        'avatar_versao' => 'avatar_versao INT NOT NULL DEFAULT 0',
+    ];
+    $existentes = [];
+    $resultado = $mysqli->query(
+        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'alunos'
+           AND COLUMN_NAME IN ('avatar_blob', 'avatar_mime', 'avatar_versao')"
+    );
+    while ($linha = $resultado->fetch_assoc()) {
+        $existentes[] = $linha['COLUMN_NAME'];
+    }
+
+    $faltando = [];
+    foreach ($definicoes as $coluna => $definicao) {
+        if (!in_array($coluna, $existentes, true)) {
+            $faltando[] = "ADD COLUMN $definicao";
+        }
+    }
+    if (!$faltando) {
         return;
     }
-    $mysqli->query(
-        "ALTER TABLE alunos
-         ADD COLUMN avatar_blob MEDIUMBLOB NULL,
-         ADD COLUMN avatar_mime VARCHAR(50) NULL,
-         ADD COLUMN avatar_versao INT NOT NULL DEFAULT 0"
-    );
+    $mysqli->query("ALTER TABLE alunos " . implode(', ', $faltando));
 }
