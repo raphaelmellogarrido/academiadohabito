@@ -46,13 +46,8 @@
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  background: var(--cor-texto);
-  color: #fff;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
+  object-fit: cover;
 }
 
 .cm-comunidade-seletor {

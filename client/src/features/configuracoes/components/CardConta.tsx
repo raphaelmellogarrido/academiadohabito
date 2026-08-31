@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { configuracoesApi } from "../api/configuracoesApi";
 import { CampoValidado } from "./CampoValidado";
+import { SenhaRequisitos } from "./SenhaRequisitos";
 
 // Mesma regra aplicada nos dois backends (senha-alterar.php / users.routes.ts)
 // — 8+ caracteres, com maiúscula, minúscula e número.
@@ -47,7 +48,7 @@ export function CardConta({ email }: { email: string }) {
       <p className="cfg-secao-sub">Alterar senha</p>
 
       <CampoValidado label="Nova senha" tipo="password" value={novaSenha} onChange={setNovaSenha} valido={senhaForte} />
-      <p className="cfg-campo-dica">Mínimo 8 caracteres, com maiúscula, minúscula e número.</p>
+      <SenhaRequisitos senha={novaSenha} />
 
       <CampoValidado
         label="Confirmar nova senha"

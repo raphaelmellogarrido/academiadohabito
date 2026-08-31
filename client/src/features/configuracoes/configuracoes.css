@@ -130,6 +130,48 @@
   color: var(--cor-texto-suave);
 }
 
+/* Checklist ao vivo dos requisitos da nova senha (SenhaRequisitos.tsx). */
+.cfg-senha-requisitos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: -4px 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.cfg-senha-requisito {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  transition: color 0.15s ease;
+}
+
+.cfg-senha-requisito--ok {
+  color: var(--cor-verde);
+}
+
+.cfg-senha-requisito-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--cor-borda);
+  color: #fff;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.cfg-senha-requisito--ok .cfg-senha-requisito-icone {
+  background: var(--cor-verde);
+  border-color: var(--cor-verde);
+}
+
 .cfg-secao-sub {
   margin: 6px 0 10px;
   font-size: 12.5px;

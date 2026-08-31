@@ -74,7 +74,7 @@ export function TopBar({ usuario, onSair }: { usuario: Usuario; onSair: () => vo
 
           <div className="cm-comunidade-seletor" ref={seletorRef}>
             <button type="button" className="cm-comunidade-seletor-btn" onClick={() => setSeletorAberto((v) => !v)} aria-expanded={seletorAberto} aria-haspopup="true">
-              <span className="cm-logo-r">R</span>
+              <img src="/meditacao.png" alt="Academia do Hábito" className="cm-logo-r" />
               <span className="cm-comunidade-texto">
                 <span>Comunidade</span>
                 <span>{comunidadeAtiva.label}</span>
