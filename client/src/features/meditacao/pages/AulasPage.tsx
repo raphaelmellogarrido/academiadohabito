@@ -42,6 +42,7 @@ export function AulasPage() {
           dia={aulas.diaAtual.dia}
           video={video}
           concluida={concluida}
+          bloqueada={!!aulas.bloqueioVideoAtivo && !aulas.bloqueioVideoAtivo.liberado}
           onToggleConcluida={() => aulas.toggleConcluida(video.arquivo)}
           onTimeUpdate={aulas.handleTimeUpdatePlayer}
           onEnded={aulas.irParaProximoVideo}

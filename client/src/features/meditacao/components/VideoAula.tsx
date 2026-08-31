@@ -5,6 +5,7 @@ export function VideoAula({
   dia,
   video,
   concluida,
+  bloqueada = false,
   onToggleConcluida,
   onTimeUpdate,
   onEnded,
@@ -12,12 +13,35 @@ export function VideoAula({
   dia: number;
   video: VideoAulaTipo;
   concluida: boolean;
+  // Defesa extra: o vídeo ATIVO nunca deveria estar bloqueado (useAulas já
+  // filtra isso em alvoResumo/selecionarVideo/irParaProximoVideo), mas se por
+  // algum motivo estiver, o checkbox fica desabilitado em vez de marcar aula
+  // travada — nada de cadeado "decorativo".
+  bloqueada?: boolean;
   onToggleConcluida: () => void;
   onTimeUpdate: (currentTime: number, duration: number) => void;
   onEnded: () => void;
 }) {
   return (
     <div className="cartao cm-video-aula">
+      {/* Cabeçalho (checkbox + título) fica ACIMA do player — antes ficava um
+          botão "Marcar aula como concluída" abaixo do vídeo; agora marcar/
+          desmarcar é um checkbox ao lado do nome da aula. */}
+      <div className="cm-video-cabecalho">
+        <label className={`cm-video-check-label ${bloqueada ? "is-bloqueada" : ""}`}>
+          <input
+            type="checkbox"
+            className="cm-video-checkbox"
+            checked={concluida}
+            disabled={bloqueada}
+            onChange={onToggleConcluida}
+            aria-label={concluida ? "Aula concluída — clique para desmarcar" : "Marcar aula como concluída"}
+          />
+          <h1 className="cm-video-titulo">{video.titulo}</h1>
+        </label>
+        <p className="cm-video-subtitulo">Continue de onde parou, sua presença é o que importa.</p>
+      </div>
+
       <div className="cm-video-player">
         {/* key=arquivo força remontar o player ao trocar de vídeo — reseta
             estado interno (currentTime, volume popup, etc). Progresso >90%
@@ -33,12 +57,6 @@ export function VideoAula({
           onEnded={onEnded}
         />
       </div>
-      <h1 className="cm-video-titulo">{video.titulo}</h1>
-      <p className="cm-video-subtitulo">Continue de onde parou, sua presença é o que importa.</p>
-
-      <button type="button" className={`cm-video-concluir ${concluida ? "is-concluida" : ""}`} onClick={onToggleConcluida}>
-        {concluida ? "Aula concluída ✓ — clique para desmarcar" : "Marcar aula como concluída"}
-      </button>
     </div>
   );
 }

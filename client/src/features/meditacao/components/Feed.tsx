@@ -42,10 +42,7 @@ export function Feed() {
   useEffect(() => {
     const alvo = sentinelaRef.current;
     if (!alvo || !temMais) return;
-    const observer = new IntersectionObserver(
-      (entradas) => entradas[0].isIntersecting && carregarMais(),
-      { rootMargin: "120px" },
-    );
+    const observer = new IntersectionObserver((entradas) => entradas[0].isIntersecting && carregarMais(), { rootMargin: "120px" });
     observer.observe(alvo);
     return () => observer.disconnect();
   }, [temMais, carregarMais]);
@@ -154,13 +151,13 @@ export function Feed() {
         </div>
         <h3 className="cm-composer-pergunta">Qual foi sua dificuldade ao meditar hoje?</h3>
 
-        <div className="cm-composer-humor">
+        {/* <div className="cm-composer-humor">
           {HUMORES.map((h) => (
             <button key={h.valor} type="button" className={`cm-humor-pilula ${humor === h.valor ? "is-selecionada" : ""}`} onClick={() => setHumor(h.valor)}>
               {h.label}
             </button>
           ))}
-        </div>
+        </div> */}
 
         <div className="cm-composer-toolbar">
           <button type="button" title="Negrito" onClick={() => envolverSelecao("**")}>
@@ -220,16 +217,7 @@ export function Feed() {
 
       {carregando && <p className="carregando">Carregando…</p>}
       {posts.map((p) => (
-        <ComentarioBloco
-          key={p.id}
-          no={p}
-          nivel={0}
-          onReagir={aoReagir}
-          onResponder={aoResponder}
-          onEditar={aoEditar}
-          onAlterarVisibilidade={aoAlterarVisibilidade}
-          onExcluir={aoExcluir}
-        />
+        <ComentarioBloco key={p.id} no={p} nivel={0} onReagir={aoReagir} onResponder={aoResponder} onEditar={aoEditar} onAlterarVisibilidade={aoAlterarVisibilidade} onExcluir={aoExcluir} />
       ))}
 
       <div ref={sentinelaRef} />

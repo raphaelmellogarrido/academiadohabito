@@ -64,27 +64,6 @@ export function useAulas(dias: DiaAulas[], catalogoCarregando: boolean) {
       .finally(() => setProgressoCarregado(true));
   }, []);
 
-  // "Continuar de onde parou": primeira aula ainda não concluída, na ordem
-  // real do curso. Só vale como FALLBACK enquanto diaSelecionado/
-  // videoAtivoArquivo ainda são null — assim que o aluno clica numa aula ou
-  // troca de dia, o estado explícito manda.
-  const alvoResumo = useMemo(() => {
-    if (!dias.length || !progressoCarregado) return null;
-    const ordemAulas = dias.flatMap((d) => d.videos.map((v) => ({ dia: d.dia, arquivo: v.arquivo })));
-    const proximaNaoAssistida = ordemAulas.find((a) => !progressoPorArquivo[a.arquivo]?.assistida);
-    return proximaNaoAssistida || ordemAulas[ordemAulas.length - 1] || null;
-  }, [dias, progressoCarregado, progressoPorArquivo]);
-
-  const diaEfetivo = diaSelecionado ?? alvoResumo?.dia ?? null;
-  const videoArquivoEfetivo = videoAtivoArquivo ?? alvoResumo?.arquivo ?? null;
-
-  const diaAtual = useMemo(() => dias.find((d) => d.dia === diaEfetivo), [dias, diaEfetivo]);
-  const videos = useMemo(() => diaAtual?.videos || [], [diaAtual]);
-  const videoAtivo = useMemo(
-    () => videos.find((v) => v.arquivo === videoArquivoEfetivo) || videos[0],
-    [videos, videoArquivoEfetivo],
-  );
-
   const maxDiaCompleto = useMemo(() => calcularMaxDiaCompleto(dias, progressoPorArquivo), [dias, progressoPorArquivo]);
   const ultimoDiaCompletadoData = useMemo(
     () => calcularUltimoDiaCompletadoData(dias, progressoPorArquivo, maxDiaCompleto),
@@ -122,6 +101,34 @@ export function useAulas(dias: DiaAulas[], catalogoCarregando: boolean) {
     return mapa;
   }, [dias, progressoPorArquivo, maxDiaCompleto, ultimoDiaCompletadoData, hojeServidor, progressoVerificado]);
 
+  // "Continuar de onde parou": primeira aula ainda não concluída E LIBERADA,
+  // na ordem real do curso — nunca cai numa aula travada (calendário/pausa),
+  // senão o player abriria sozinho num vídeo bloqueado. Só vale como FALLBACK
+  // enquanto diaSelecionado/videoAtivoArquivo ainda são null — assim que o
+  // aluno clica numa aula ou troca de dia, o estado explícito manda.
+  const alvoResumo = useMemo(() => {
+    if (!dias.length || !progressoCarregado) return null;
+    const ordemAulas = dias.flatMap((d) => d.videos.map((v) => ({ dia: d.dia, arquivo: v.arquivo })));
+    const proximaLiberada = ordemAulas.find(
+      (a) => !progressoPorArquivo[a.arquivo]?.assistida && !!bloqueioPorArquivo[a.arquivo]?.liberado,
+    );
+    if (proximaLiberada) return proximaLiberada;
+    // Tudo que está liberado já foi assistido (jornada completa até aqui, ou
+    // travada esperando calendário/pausa) — mostra a última aula liberada.
+    const liberadas = ordemAulas.filter((a) => !!bloqueioPorArquivo[a.arquivo]?.liberado);
+    return liberadas[liberadas.length - 1] || ordemAulas[0] || null;
+  }, [dias, progressoCarregado, progressoPorArquivo, bloqueioPorArquivo]);
+
+  const diaEfetivo = diaSelecionado ?? alvoResumo?.dia ?? null;
+  const videoArquivoEfetivo = videoAtivoArquivo ?? alvoResumo?.arquivo ?? null;
+
+  const diaAtual = useMemo(() => dias.find((d) => d.dia === diaEfetivo), [dias, diaEfetivo]);
+  const videos = useMemo(() => diaAtual?.videos || [], [diaAtual]);
+  const videoAtivo = useMemo(
+    () => videos.find((v) => v.arquivo === videoArquivoEfetivo) || videos[0],
+    [videos, videoArquivoEfetivo],
+  );
+
   const bloqueioVideoAtivo = videoAtivo ? bloqueioPorArquivo[videoAtivo.arquivo] : null;
 
   // Banner "Pausa obrigatória em andamento": olha o bloqueio do 1º vídeo do
@@ -135,6 +142,18 @@ export function useAulas(dias: DiaAulas[], catalogoCarregando: boolean) {
     const arquivo = arquivoParam || videoAtivo?.arquivo;
     if (!arquivo) return;
 
+    // Gate de verdade: se o vídeo está bloqueado (calendário/pausa/ordem),
+    // nem tenta marcar — só avisa com o mesmo toast do clique num cadeado
+    // (ver selecionarVideo). Sem isso, o botão/checkbox "marcava" a aula na
+    // hora (otimista) mesmo bloqueada, e só desfazia quando o servidor
+    // respondia (ou nem isso, ver rollback abaixo).
+    const bloqueio = bloqueioPorArquivo[arquivo];
+    if (bloqueio && !bloqueio.liberado) {
+      setToast(mensagemBloqueio(bloqueio.motivo, diaEfetivo ?? 0, bloqueio.diasRestantes));
+      return;
+    }
+
+    const anterior = progressoPorArquivo[arquivo];
     // Otimista: atualiza local já, sem esperar o servidor responder —
     // completadoEm local libera o próximo dia na UI sem esperar round-trip.
     setProgressoPorArquivo((atual) => ({
@@ -148,9 +167,19 @@ export function useAulas(dias: DiaAulas[], catalogoCarregando: boolean) {
         setProgressoPorArquivo(r.progressoPorArquivo);
         setHojeServidor(r.hoje);
       })
-      .catch((err) => console.error("Não foi possível sincronizar progresso com o servidor:", err));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoAtivo]);
+      .catch((err) => {
+        console.error("Não foi possível sincronizar progresso com o servidor:", err);
+        // Servidor recusou (ex: bloqueio mudou entre o clique e a resposta) —
+        // desfaz o otimista em vez de deixar a UI mentindo que concluiu.
+        setProgressoPorArquivo((atual) => {
+          const novo = { ...atual };
+          if (anterior) novo[arquivo] = anterior;
+          else delete novo[arquivo];
+          return novo;
+        });
+        setToast("Não foi possível marcar essa aula agora. Recarregue a página.");
+      });
+  }, [videoAtivo, bloqueioPorArquivo, progressoPorArquivo, diaEfetivo]);
 
   const desmarcarConcluida = useCallback((arquivoParam?: string) => {
     const arquivo = arquivoParam || videoAtivo?.arquivo;
@@ -199,19 +228,28 @@ export function useAulas(dias: DiaAulas[], catalogoCarregando: boolean) {
     setVideoAtivoArquivo(arquivo);
   }
 
-  // Avanço automático ao fim do vídeo — não passa pelo gate de
-  // selecionarVideo (nunca dispara toast numa transição automática).
+  // Avanço automático ao fim do vídeo — não passa pelo toast de
+  // selecionarVideo (uma transição automática não deveria interromper com
+  // aviso), mas AINDA PRECISA respeitar o bloqueio: sem isso, terminar o
+  // último vídeo de um dia liberado empurrava o aluno pro próximo dia mesmo
+  // que ele estivesse travado por calendário/pausa. Se o próximo estiver
+  // bloqueado, simplesmente não avança (o vídeo atual já foi marcado
+  // concluído pelo limiar de 90%, ver handleTimeUpdatePlayer).
   function irParaProximoVideo() {
     const indiceAtual = videos.findIndex((v) => v.arquivo === videoAtivo?.arquivo);
     if (indiceAtual > -1 && indiceAtual < videos.length - 1) {
-      setVideoAtivoArquivo(videos[indiceAtual + 1].arquivo);
+      const proximoVideo = videos[indiceAtual + 1];
+      if (bloqueioPorArquivo[proximoVideo.arquivo]?.liberado) {
+        setVideoAtivoArquivo(proximoVideo.arquivo);
+      }
       return;
     }
     const indiceDia = dias.findIndex((d) => d.dia === diaEfetivo);
     const proximoDia = dias[indiceDia + 1];
-    if (proximoDia) {
+    const primeiroVideoProximoDia = proximoDia?.videos[0];
+    if (proximoDia && primeiroVideoProximoDia && bloqueioPorArquivo[primeiroVideoProximoDia.arquivo]?.liberado) {
       setDiaSelecionado(proximoDia.dia);
-      setVideoAtivoArquivo(proximoDia.videos[0]?.arquivo || null);
+      setVideoAtivoArquivo(primeiroVideoProximoDia.arquivo);
     }
   }
 
