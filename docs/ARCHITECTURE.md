@@ -86,8 +86,9 @@ primeira tem campos freeform demais e a segunda mora num banco separado
 `api/_encontro.php` cria duas tabelas novas, **self-provisioning**
 (`CREATE TABLE IF NOT EXISTS` + seed na primeira execução, mesmo padrão do
 `live/reservas.php` antigo) dentro do `u790959747_comunidade` já conectado:
-`ah_proximo_encontro` (1 linha, `id=1`, editada manualmente via phpMyAdmin
-com o encontro real) e `ah_encontro_reservas` (reserva por aluno).
+`ah_proximo_encontro` (1 linha, `id=1`, editada por `/app/admin` via
+`encontro-editar.php` — ver "Admin e tempo real" abaixo) e
+`ah_encontro_reservas` (reserva por aluno).
 
 "Sua prática hoje" / feed (`feed.php`, `feed-reagir.php`,
 `feed-responder.php`, `imagem-comentario.php`) reaproveita `comentarios` e
@@ -111,8 +112,31 @@ aula reaproveitam `comentarios`/`comentario_reacoes` (mesmo `_feed.php`
 usado pelo feed), mas como essa tabela não tem coluna pra "dia da aula" e é
 compartilhada com o site antigo, o dia fica embutido no próprio `aula_id`
 como `"aulas:{dia}"` (listagem filtra por `aula_id LIKE 'aulas:%'`). `admin`
-no comentário real é sempre `false` (mesma regra de `alunoParaUsuario()`) —
-excluir fica restrito ao próprio autor, sem bypass de admin.
+no comentário real segue `ehOrientadorEmail()` (ver abaixo) — excluir aceita
+o próprio autor ou um orientador, mesmo contrato do mock.
+
+## Admin e tempo real (≤3s)
+
+Não existe tabela de "papel" em `alunos` — admin/orientador é a mesma lista
+fixa `EMAILS_ORIENTADORES` (`api/_config.php`, espelhada em
+`ehOrientador()` de `server/src/modules/auth/auth.service.ts`), já
+reaproveitada em vários lugares como bypass de "pode excluir". `_config.php`
+(sempre o primeiro `require` de todo endpoint) expõe `ehOrientadorEmail()` +
+`exigirAdmin($email)` (mesmo padrão 403 de `exigirSessao()`); `alunoParaUsuario()`
+seta `admin` a partir daí, o que já liga o link "Admin" na TopBar sem
+mexer nela. `encontro-editar.php` e `frase-editar.php` (PUT, ambos atrás de
+`exigirSessao()` + `exigirAdmin()`) são os únicos endpoints de escrita
+restritos a admin — servem o formulário de `/app/admin`
+(`client/src/features/admin/`).
+
+Sem Node App em produção, WebSocket/SSE não são viáveis (mesma limitação do
+topo deste doc) — "atualizar pra todo mundo em até 3s" é feito por
+**polling**: todo card do dashboard (`usePolling`, `shared/hooks/usePolling.ts`)
+re-busca seu próprio endpoint a cada 3s, pausando sozinho quando a aba vai
+pra background. Isso cobre uniformemente qualquer origem de mudança — ação
+de outro aluno (meditar, comentar, reagir, reservar vaga) ou edição feita no
+admin — sem precisar de nenhum mecanismo de "avisar os outros": o próximo
+poll de qualquer cliente já traz a versão nova.
 
 ## Rodando
 ```

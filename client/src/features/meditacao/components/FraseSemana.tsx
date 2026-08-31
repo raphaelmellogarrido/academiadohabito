@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { meditacaoApi } from "../api/meditacaoApi";
+import { usePolling } from "../../../shared/hooks/usePolling";
 
 export function FraseSemana() {
   const [frase, setFrase] = useState<{ frase: string; autor: string } | null>(null);
 
-  useEffect(() => {
-    meditacaoApi.frase().then((r) => setFrase({ frase: r.frase, autor: r.autor }));
-  }, []);
+  // Poll a cada 3s: edição feita no admin (ver AdminPage.tsx) aparece pra
+  // todo mundo em até 3s.
+  usePolling(async () => {
+    const r = await meditacaoApi.frase();
+    setFrase({ frase: r.frase, autor: r.autor });
+  }, 3000);
 
   if (!frase) return null;
 

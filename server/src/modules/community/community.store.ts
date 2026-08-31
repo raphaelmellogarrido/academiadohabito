@@ -203,12 +203,15 @@ export function editarPost(id: string, usuario: { id: string; admin: boolean }, 
   return paraClientePost(post, usuario);
 }
 
+// Resposta não tem visibilidade própria: ela sempre segue a do post raiz
+// (client nem mostra o seletor pra nivel > 0 — ver ComentarioBloco.tsx), então
+// aqui recusa mudar visibilidade de qualquer nó que não seja a raiz da thread.
 export function alterarVisibilidade(id: string, usuario: { id: string; admin: boolean }, visibilidade: Visibilidade) {
   const post = encontrarPostDoNo(id);
   if (!post) return "nao_encontrado" as const;
-  const no = encontrarNo(post, id)!;
-  if (no.userId !== usuario.id) return "sem_permissao" as const;
-  no.visibilidade = visibilidade;
+  if (post.id !== id) return "sem_permissao" as const;
+  if (post.userId !== usuario.id) return "sem_permissao" as const;
+  post.visibilidade = visibilidade;
   return paraClientePost(post, usuario);
 }
 

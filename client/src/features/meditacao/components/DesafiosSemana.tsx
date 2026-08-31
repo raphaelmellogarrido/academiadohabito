@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { meditacaoApi, type Desafio } from "../api/meditacaoApi";
+import { usePolling } from "../../../shared/hooks/usePolling";
 
 export function DesafiosSemana() {
   const [desafios, setDesafios] = useState<Desafio[] | null>(null);
 
-  useEffect(() => {
-    meditacaoApi.desafios().then((r) => setDesafios(r.desafios));
-  }, []);
+  // Poll a cada 3s (consistência geral do dashboard).
+  usePolling(async () => {
+    const r = await meditacaoApi.desafios();
+    setDesafios(r.desafios);
+  }, 3000);
 
   async function alternar(id: string) {
     const r = await meditacaoApi.alternarDesafio(id);

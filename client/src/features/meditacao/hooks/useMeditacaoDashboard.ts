@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { meditacaoApi, type Jornada, type Pulso, type Sequencia } from "../api/meditacaoApi";
+import { usePolling } from "../../../shared/hooks/usePolling";
 
 export function useMeditacaoDashboard() {
   const [sequencia, setSequencia] = useState<Sequencia | null>(null);
@@ -22,9 +23,14 @@ export function useMeditacaoDashboard() {
     if (pul.status === "fulfilled") setPulso(pul.value);
   }, []);
 
-  useEffect(() => {
-    recarregar().finally(() => setCarregando(false));
+  // Poll a cada 3s (usePolling) — "Meditando junto" reflete check-ins,
+  // partilhas e dias de presença de QUALQUER aluno em até 3s, não só do
+  // próprio (ver docs/ARCHITECTURE.md).
+  const carregarUmaVez = useCallback(async () => {
+    await recarregar();
+    setCarregando(false);
   }, [recarregar]);
+  usePolling(carregarUmaVez, 3000);
 
   const mediteiHoje = useCallback(async () => {
     setMarcando(true);

@@ -61,6 +61,19 @@ export interface Desafio {
   concluido: boolean;
 }
 
+// Campos editáveis do encontro no /admin — mesmos campos de `Encontro`
+// menos os calculados por aluno (reservado/totalReservas/reservasAvatares,
+// que o servidor recalcula sozinho e devolve na resposta).
+export interface EncontroEdicao {
+  titulo: string;
+  dataISO: string;
+  duracaoMin: number;
+  anfitriao: string;
+  aoVivo: boolean;
+  linkLive: string | null;
+  checklist: string[];
+}
+
 export type Humor = "calma" | "agitada" | "cansada" | "foco";
 
 // publico = todo mundo vê; privado = só quem postou; orientador = só quem
@@ -132,6 +145,12 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.post<{ ok: true; encontro: Encontro }>("/encontro-reservar.php")
       : api.post<{ ok: true; encontro: Encontro }>("/meditacao/lives/proxima/reservar"),
+  // Admin only (ver AdminPage.tsx) — servidor exige e-mail em
+  // EMAILS_ORIENTADORES (PHP)/usuario.admin (mock), 403 caso contrário.
+  editarEncontro: (patch: EncontroEdicao) =>
+    ehProducaoReal
+      ? api.put<{ ok: true; encontro: Encontro }>("/encontro-editar.php", patch)
+      : api.put<{ ok: true; encontro: Encontro }>("/meditacao/lives/proxima", patch),
 
   desafios: () =>
     ehProducaoReal
@@ -148,6 +167,13 @@ export const meditacaoApi = {
           .get<{ ok: true; frase: string; subfrase: string }>("/frase.php")
           .then(({ ok, frase, subfrase }) => ({ ok, frase, autor: subfrase }))
       : api.get<{ ok: true; frase: string; autor: string }>("/meditacao/frase"),
+  // Admin only (ver AdminPage.tsx) — mesma checagem de editarEncontro acima.
+  editarFrase: (frase: string, autor: string) =>
+    ehProducaoReal
+      ? api
+          .put<{ ok: true; frase: string; subfrase: string }>("/frase-editar.php", { frase, subfrase: autor })
+          .then(({ ok, frase, subfrase }) => ({ ok, frase, autor: subfrase }))
+      : api.put<{ ok: true; frase: string; autor: string }>("/meditacao/frase", { frase, autor }),
 
   feed: () =>
     ehProducaoReal

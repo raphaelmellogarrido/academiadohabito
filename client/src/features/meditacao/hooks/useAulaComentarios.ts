@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { meditacaoApi, type AulaComentario } from "../api/meditacaoApi";
+import { usePolling } from "../../../shared/hooks/usePolling";
 
 export function useAulaComentarios() {
   const [comentarios, setComentarios] = useState<AulaComentario[]>([]);
@@ -15,9 +16,33 @@ export function useAulaComentarios() {
     setTemMais(r.proximoCursor !== null);
   }, []);
 
-  useEffect(() => {
-    carregarPagina(null).finally(() => setCarregando(false));
-  }, [carregarPagina]);
+  // Poll a cada 3s só da 1ª página — usado tanto pra carga inicial quanto
+  // pra manter a lista fresca (novo comentário/reação/exclusão de qualquer
+  // pessoa em até 3s). Não pode reusar `carregarPagina(null)` direto pros
+  // ticks seguintes: ela SUBSTITUI `comentarios` inteiro pela página 1,
+  // apagando páginas 2+ que o aluno já carregou via "carregar mais". Depois
+  // da 1ª carga, cada tick só atualiza por id quem já está na lista (em
+  // qualquer página) e insere no topo quem ainda não apareceu — `cursor`/
+  // `temMais` ficam intocados (só avançam via carregarMais).
+  const primeiraCargaFeita = useRef(false);
+  const pollarPrimeiraPagina = useCallback(async () => {
+    const r = await meditacaoApi.aulasComentarios(null);
+    if (!primeiraCargaFeita.current) {
+      primeiraCargaFeita.current = true;
+      setComentarios(r.comentarios);
+      setCursor(r.proximoCursor);
+      setTemMais(r.proximoCursor !== null);
+      setCarregando(false);
+      return;
+    }
+    setComentarios((atual) => {
+      const idsAtuais = new Set(atual.map((c) => c.id));
+      const atualizados = atual.map((c) => r.comentarios.find((n) => n.id === c.id) ?? c);
+      const novosDeVerdade = r.comentarios.filter((n) => !idsAtuais.has(n.id));
+      return [...novosDeVerdade, ...atualizados];
+    });
+  }, []);
+  usePolling(pollarPrimeiraPagina, 3000);
 
   const carregarMais = useCallback(async () => {
     if (!temMais || carregandoMais) return;

@@ -200,12 +200,15 @@ export function editarComentario(id: string, usuario: { id: string; admin: boole
   return paraCliente(raiz, usuario);
 }
 
+// Resposta não tem visibilidade própria: ela sempre segue a do comentário raiz
+// (client nem mostra o seletor pra nivel > 0 — ver ComentarioBloco.tsx), então
+// aqui recusa mudar visibilidade de qualquer nó que não seja a raiz da thread.
 export function alterarVisibilidadeComentario(id: string, usuario: { id: string; admin: boolean }, visibilidade: Visibilidade) {
   const raiz = encontrarRaizDoNo(id);
   if (!raiz) return "nao_encontrado" as const;
-  const no = encontrarNo(raiz, id)!;
-  if (no.userId !== usuario.id) return "sem_permissao" as const;
-  no.visibilidade = visibilidade;
+  if (raiz.id !== id) return "sem_permissao" as const;
+  if (raiz.userId !== usuario.id) return "sem_permissao" as const;
+  raiz.visibilidade = visibilidade;
   return paraCliente(raiz, usuario);
 }
 

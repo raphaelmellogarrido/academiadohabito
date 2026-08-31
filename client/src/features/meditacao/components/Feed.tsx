@@ -3,6 +3,7 @@ import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
 import { meditacaoApi, type Humor, type Post } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
 import { ComentarioBloco } from "./ComentarioBloco";
+import { usePolling } from "../../../shared/hooks/usePolling";
 
 const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; tag?: string }> = {
   publico: { icone: "🌍", texto: "Visível para toda comunidade — sua experiência pode acolher outra pessoa" },
@@ -33,9 +34,15 @@ export function Feed() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    meditacaoApi.feed().then((r) => setPosts(r.posts));
-  }, []);
+  // Poll a cada 3s: post novo, reação, edição, exclusão ou mudança de
+  // visibilidade de QUALQUER pessoa aparece aqui em até 3s. `key={p.id}` no
+  // map abaixo faz o React reconciliar por id em vez de remontar, então
+  // estado local de cada ComentarioBloco (caixa de resposta aberta, etc.)
+  // sobrevive ao replace do array a cada tick.
+  usePolling(async () => {
+    const r = await meditacaoApi.feed();
+    setPosts(r.posts);
+  }, 3000);
 
   // Fecha o picker de emoji ao clicar fora dele.
   useEffect(() => {

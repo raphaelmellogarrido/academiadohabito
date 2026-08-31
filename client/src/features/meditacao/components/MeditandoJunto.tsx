@@ -13,7 +13,7 @@ export function MeditandoJunto({ pulso }: { pulso: Pulso }) {
             <Users size={20} strokeWidth={1.75} />
           </span>
           <p>
-            <strong>{pulso.hojeCheckins}</strong> meditaram hoje
+            <strong>{pulso.hojeCheckins}</strong> pessoas meditaram hoje
           </p>
         </div>
         <div className="cm-mj-item">

@@ -17,16 +17,9 @@ function isoComOffset(string $mysqlDatetime): string
     return str_replace(' ', 'T', $mysqlDatetime) . '-03:00';
 }
 
-// Orientadores que podem ver posts marcados 'orientador' — lista fixa por
-// enquanto, não existe papel de orientador na tabela `alunos` ainda. Mesmo
-// par de e-mails do lado mock Node (ehOrientador em
-// server/src/modules/auth/auth.service.ts) — manter os dois em sincronia.
-const EMAILS_ORIENTADORES = ['raphaelmellogarrido@gmail.com', 'rsp.ren@gmail.com'];
-
-function ehOrientadorEmail(string $email): bool
-{
-    return in_array(strtolower(trim($email)), EMAILS_ORIENTADORES, true);
-}
+// EMAILS_ORIENTADORES/ehOrientadorEmail() moraram aqui antes — agora ficam
+// em _config.php (sempre o primeiro require de todo endpoint, não só os de
+// feed) pra exigirAdmin() e alunoParaUsuario() poderem reusar sem duplicar.
 
 // null/'publico' = visível a todo mundo; 'privado' só pro próprio autor;
 // 'orientador' só pro próprio autor + ehOrientadorEmail(). Aplicado em SQL

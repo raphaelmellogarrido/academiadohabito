@@ -97,10 +97,11 @@ communityRouter.get("/meditacao/frase", requireAuth, (_req, res) => {
   res.json({ ok: true, ...getFrase() });
 });
 
-// Sem checagem de admin de verdade ainda (mock); front só expõe o form no
-// hamburguer/admin do usuário demo (admin:true). Endpoint fica aberto a
-// qualquer autenticado por ora — ver docs/HABIT_LOGIC.md (pendências).
+// Admin (/app/admin, AdminPage.tsx) edita a frase da semana — dashboard vê
+// a mudança no próprio poll de 3s (FraseSemana.tsx).
 communityRouter.put("/meditacao/frase", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  if (!usuario.admin) return res.status(403).json({ erro: "somente admin" });
   const { frase = "", autor = "" } = req.body ?? {};
   if (!String(frase).trim()) return res.status(400).json({ erro: "frase vazia" });
   res.json({ ok: true, ...editarFrase(String(frase), String(autor)) });

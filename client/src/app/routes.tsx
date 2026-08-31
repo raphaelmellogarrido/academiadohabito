@@ -6,6 +6,7 @@ import { HubPage } from "../pages/Hub/HubPage";
 import { MeditacaoDashboardPage } from "../features/meditacao/pages/MeditacaoDashboardPage";
 import { AulasPage } from "../features/meditacao/pages/AulasPage";
 import { ConfiguracoesPage } from "../features/configuracoes/pages/ConfiguracoesPage";
+import { AdminPage } from "../features/admin/pages/AdminPage";
 import { useUserHabits } from "../shared/hooks/useUserHabits";
 
 // Rota inteligente (spec 29/08): GET /api/me/habitos decide o destino de
@@ -43,7 +44,7 @@ export const router = createBrowserRouter([
       { path: "meditacao/aulas", element: <AulasPage /> },
       { path: "configuracoes", element: <ConfiguracoesPage /> },
       { path: "mensagens", element: <EmBreve titulo="Mensagens" /> },
-      { path: "admin", element: <EmBreve titulo="Admin" /> },
+      { path: "admin", element: <AdminPage /> },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Calendar, Check, Clock } from "lucide-react";
 import { meditacaoApi, type Encontro } from "../api/meditacaoApi";
+import { usePolling } from "../../../shared/hooks/usePolling";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -24,9 +25,14 @@ export function ProximoEncontro() {
   const [encontro, setEncontro] = useState<Encontro | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  useEffect(() => {
-    meditacaoApi.proximoEncontro().then((r) => setEncontro(r.encontro));
-  }, []);
+  // Poll a cada 3s: reservas de outros alunos e qualquer edição feita no
+  // admin (título, data, "ao vivo", etc. — ver AdminPage.tsx) aparecem aqui
+  // em até 3s. `enabled: !enviando` evita a resposta do poll pisar na
+  // resposta do próprio POST de reservar (ver alternarReserva abaixo).
+  usePolling(async () => {
+    const r = await meditacaoApi.proximoEncontro();
+    setEncontro(r.encontro);
+  }, 3000, !enviando);
 
   if (!encontro) return null;
 

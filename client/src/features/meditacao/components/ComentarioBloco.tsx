@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import type { NoComentario, Visibilidade } from "../api/meditacaoApi";
 import { VisibilidadeIcone } from "./VisibilidadeIcone";
@@ -14,11 +14,27 @@ function formatarDataHora(iso: string): string {
   return `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${d.getFullYear()} às ${dois(d.getHours())}:${dois(d.getMinutes())}`;
 }
 
+// Achata a árvore de respostas (resposta de resposta, em qualquer
+// profundidade) numa lista única em ordem cronológica. Responder a uma
+// resposta continua criando um nó aninhado no servidor (a hierarquia real
+// não muda), mas visualmente todas ficam lado a lado, um nível só de
+// indentação abaixo do post raiz — sem "escadinha" indentando cada vez mais
+// a cada resposta-de-resposta.
+function coletarRespostas(no: NoComentario): NoComentario[] {
+  const todas: NoComentario[] = [];
+  for (const r of no.respostas) {
+    todas.push(r);
+    todas.push(...coletarRespostas(r));
+  }
+  return todas.sort((a, b) => a.criadoEm.localeCompare(b.criadoEm));
+}
+
 // Componente recursivo único compartilhado entre Feed ("Sua prática hoje") e
 // /aulas: renderiza 1 nó (post/comentário raiz OU qualquer resposta, em
-// qualquer profundidade — mesmo shape `NoComentario`) e, embaixo dele,
-// recursivamente cada resposta em `no.respostas` — indentada via
-// `.cm-post-respostas` (borda à esquerda + padding), sem limite de nível.
+// qualquer profundidade — mesmo shape `NoComentario`) e, embaixo dele, toda
+// a árvore de respostas achatada num único nível de indentação via
+// `.cm-post-respostas` (ver `coletarRespostas`) — responder a uma resposta
+// ainda cria um nó aninhado no servidor, só não indenta mais um nível na tela.
 //
 // Os callbacks já vêm prontos do componente pai (Feed.tsx/ComentariosAulas.tsx):
 // eles chamam a API passando o id DESTE nó específico (raiz ou aninhado — o
@@ -48,9 +64,29 @@ export function ComentarioBloco({
   const [textoResposta, setTextoResposta] = useState("");
   const [editando, setEditando] = useState(false);
   const [textoEdicao, setTextoEdicao] = useState(no.texto);
+  const inputRespostaRef = useRef<HTMLInputElement>(null);
+
+  // Ao abrir o box de resposta, já deixa "@Nome " digitado e o cursor
+  // posicionado depois da menção, pronto pra continuar digitando.
+  useEffect(() => {
+    if (!respondendo) return;
+    const el = inputRespostaRef.current;
+    if (!el) return;
+    el.focus();
+    const pos = el.value.length;
+    el.setSelectionRange(pos, pos);
+  }, [respondendo]);
 
   function reagir(reacao: "🙏" | "❤️" | "🔥") {
     onReagir(no.id, reacao);
+  }
+
+  function alternarResposta() {
+    setRespondendo((v) => {
+      const abrir = !v;
+      setTextoResposta(abrir ? `@${no.nome} ` : "");
+      return abrir;
+    });
   }
 
   function alterarVisibilidade(nova: Visibilidade) {
@@ -86,11 +122,17 @@ export function ComentarioBloco({
         <div className="cm-post-cabecalho-topo">
           <div>
             <strong>{no.nome}</strong>
-            {no.admin && <span className="cm-badge-admin">ADMINISTRADOR</span>}
-            {badge}
+            {/* {no.admin && <span className="cm-badge-admin">ADMINISTRADOR</span>}
+            {badge} */}
           </div>
           <div className="cm-comentario-icones">
-            <VisibilidadeIcone valor={no.visibilidade} podeAlterar={no.podeEditar} onAlterar={alterarVisibilidade} />
+            {/* Resposta não tem opção de visibilidade própria: ela segue
+                sempre a visibilidade do post raiz (pública se o post é
+                público; se o autor torna o post privado, post e respostas
+                inteiros somem pra todo mundo menos ele — ver podeVerPost em
+                community.store.ts/_feed.php). Só a raiz (nivel 0) mostra o
+                seletor. */}
+            {nivel === 0 && <VisibilidadeIcone valor={no.visibilidade} podeAlterar={no.podeEditar} onAlterar={alterarVisibilidade} />}
             <span className="cm-post-quando">{formatarDataHora(no.criadoEm)}</span>
             {no.podeEditar && (
               <button type="button" className="cm-comentario-editar" onClick={comecarEdicao} title="Editar">
@@ -122,7 +164,7 @@ export function ComentarioBloco({
       {no.foto && <img src={no.foto} alt="" className="cm-post-foto" />}
 
       <div className="cm-post-acoes">
-        <button type="button" className="cm-post-responder" onClick={() => setRespondendo((v) => !v)}>
+        <button type="button" className="cm-post-responder" onClick={alternarResposta}>
           Responder
         </button>
         <div className="cm-post-reacoes">
@@ -136,26 +178,21 @@ export function ComentarioBloco({
 
       {respondendo && (
         <div className="cm-post-resposta-form">
-          <input value={textoResposta} maxLength={LIMITE_TEXTO} onChange={(e) => setTextoResposta(e.target.value)} placeholder="Escreva uma resposta…" onKeyDown={(e) => e.key === "Enter" && enviarResposta()} />
+          <input ref={inputRespostaRef} value={textoResposta} maxLength={LIMITE_TEXTO} onChange={(e) => setTextoResposta(e.target.value)} placeholder="Escreva uma resposta…" onKeyDown={(e) => e.key === "Enter" && enviarResposta()} />
           <button type="button" onClick={enviarResposta}>
             Enviar
           </button>
         </div>
       )}
 
-      {no.respostas.length > 0 && (
+      {/* Só a raiz (nivel 0) desenha a caixa de respostas — toda a árvore de
+          respostas-de-respostas é achatada aqui num único nível visual (ver
+          `coletarRespostas`), então os nós aninhados abaixo nunca desenham
+          sua própria `.cm-post-respostas` de novo. */}
+      {nivel === 0 && no.respostas.length > 0 && (
         <div className="cm-post-respostas">
-          {no.respostas.map((r) => (
-            <ComentarioBloco
-              key={r.id}
-              no={r}
-              nivel={nivel + 1}
-              onReagir={onReagir}
-              onResponder={onResponder}
-              onEditar={onEditar}
-              onAlterarVisibilidade={onAlterarVisibilidade}
-              onExcluir={onExcluir}
-            />
+          {coletarRespostas(no).map((r) => (
+            <ComentarioBloco key={r.id} no={r} nivel={1} onReagir={onReagir} onResponder={onResponder} onEditar={onEditar} onAlterarVisibilidade={onAlterarVisibilidade} onExcluir={onExcluir} />
           ))}
         </div>
       )}

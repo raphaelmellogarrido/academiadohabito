@@ -36,12 +36,39 @@ $mysqli->set_charset('utf8mb4');
 // aluno mesmo o servidor rodando em UTC (mesmo motivo do _conexao.php irmão).
 $mysqli->query("SET time_zone = '-03:00'");
 
+// Orientadores/admin — lista fixa por enquanto, não existe papel de
+// admin/orientador na tabela `alunos` ainda. Mora aqui (não em _feed.php)
+// porque _config.php é sempre o primeiro require de todo endpoint (login,
+// admin, encontro, frase...), e não só dos de feed. Mesmo par de e-mails do
+// lado mock Node (ehOrientador em server/src/modules/auth/auth.service.ts)
+// — manter os dois em sincronia.
+const EMAILS_ORIENTADORES = ['raphaelmellogarrido@gmail.com', 'rsp.ren@gmail.com'];
+
+function ehOrientadorEmail(string $email): bool
+{
+    return in_array(strtolower(trim($email)), EMAILS_ORIENTADORES, true);
+}
+
+// Endpoints de escrita restritos a admin (encontro-editar.php,
+// frase-editar.php) chamam isso logo após exigirSessao() — 403 + exit se o
+// e-mail da sessão não estiver em EMAILS_ORIENTADORES. Mesmo padrão de
+// exigirSessao() em _sessao.php.
+function exigirAdmin(string $email): void
+{
+    if (!ehOrientadorEmail($email)) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'erro' => 'somente admin']);
+        exit;
+    }
+}
+
 // Monta o mesmo shape de `Usuario` (useAuth.ts) a partir de uma linha de
 // `alunos` — usado por login.php e me.php, pra nunca desalinhar os dois.
 // `alunos.email` é a PK (não existe id numérico nessa tabela — mesmo
 // comentário em renato_de_paula/.../hotmart/_conexao.php linha ~311), por
-// isso vira o `id` aqui. `admin` sempre false: não existe esse conceito em
-// `alunos`, só controla o link "Admin" na TopBar (sem risco real).
+// isso vira o `id` aqui. `admin` reaproveita EMAILS_ORIENTADORES (mesma
+// lista já usada como "admin" em podeExcluir de feed/aula) — controla o
+// link "Admin" na TopBar e a permissão real dos endpoints -editar.php.
 function alunoParaUsuario(array $aluno): array
 {
     $partes = explode(' ', trim($aluno['nome'] ?? ''));
@@ -52,6 +79,6 @@ function alunoParaUsuario(array $aluno): array
         'nome' => $aluno['nome'] ?? '',
         'primeiroNome' => $aluno['apelido'] ?: $primeiroNome,
         'avatarUrl' => null, // avatar real fica pra quando esse card entrar
-        'admin' => false,
+        'admin' => ehOrientadorEmail($aluno['email']),
     ];
 }

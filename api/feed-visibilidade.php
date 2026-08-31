@@ -30,7 +30,7 @@ if ($id <= 0 || !in_array($visibilidade, ['publico', 'privado', 'orientador'], t
     exit;
 }
 
-$stmt = $mysqli->prepare("SELECT email FROM comentarios WHERE id = ?");
+$stmt = $mysqli->prepare("SELECT email, parent_id FROM comentarios WHERE id = ?");
 $stmt->bind_param('i', $id);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
@@ -39,6 +39,14 @@ $stmt->close();
 if (!$row) {
     http_response_code(404);
     echo json_encode(['ok' => false, 'erro' => 'post não encontrado']);
+    exit;
+}
+// Resposta não tem visibilidade própria: sempre segue a do post raiz (client
+// nem mostra o seletor pra resposta — ver ComentarioBloco.tsx), então recusa
+// mudar visibilidade de qualquer nó que não seja a raiz da thread.
+if ($row['parent_id'] !== null) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'erro' => 'sem permissão']);
     exit;
 }
 if ($row['email'] !== $email) {

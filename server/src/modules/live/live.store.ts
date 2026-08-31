@@ -72,18 +72,30 @@ export function alternarReserva(habitId: string, usuario: { id: string; nome: st
   return formatarEncontro(e, usuario.id);
 }
 
-export function liberarLive(habitId: string, link: string) {
-  const e = ENCONTROS[habitId];
-  if (!e) return null;
-  e.aoVivo = true;
-  e.linkLive = link;
-  return e;
+// Edição completa do card, feita no /admin (AdminPage.tsx) — cobre título,
+// data, duração, anfitrião, checklist e o toggle "ao vivo" + link (antes
+// eram 2 endpoints separados, liberar/encerrar; um editor geral cobre os
+// dois casos sem duplicar rota). `checklist` chega como array (já dividido
+// por linha no client).
+export interface EncontroEdicao {
+  titulo: string;
+  dataISO: string;
+  duracaoMin: number;
+  anfitriao: string;
+  aoVivo: boolean;
+  linkLive: string | null;
+  checklist: string[];
 }
 
-export function encerrarLive(habitId: string) {
+export function editarEncontro(habitId: string, patch: EncontroEdicao, usuarioId: string) {
   const e = ENCONTROS[habitId];
   if (!e) return null;
-  e.aoVivo = false;
-  e.linkLive = null;
-  return e;
+  e.titulo = patch.titulo;
+  e.dataISO = patch.dataISO;
+  e.duracaoMin = patch.duracaoMin;
+  e.anfitriao = patch.anfitriao;
+  e.aoVivo = patch.aoVivo;
+  e.linkLive = patch.aoVivo ? patch.linkLive : null;
+  e.checklist = patch.checklist;
+  return formatarEncontro(e, usuarioId);
 }

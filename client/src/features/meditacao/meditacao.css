@@ -890,28 +890,33 @@
 }
 
 .cm-post.is-admin {
-  background: #1f2b4d;
-  border-color: #1f2b4d;
-  color: #fff;
+  /* background: #1f2b4d;
+  border-color: #1f2b4d; */
+  /* color: #fff; */
+  color: #000;
 }
 
 .cm-post.is-admin .cm-post-quando,
 .cm-post.is-admin .cm-comentario-icones {
-  color: rgba(255, 255, 255, 0.65);
+  /* color: rgba(255, 255, 255, 0.65); */
+  color: #000;
 }
 
 .cm-post.is-admin .cm-post-reacao {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  /* color: #fff; */
+  color: #000;
 }
 
 .cm-post.is-admin .cm-post-responder {
-  color: rgba(255, 255, 255, 0.75);
+  /* color: rgba(255, 255, 255, 0.75); */
+  color: #000;
 }
 
 .cm-post.is-admin .cm-visibilidade-icone.is-clicavel:hover {
-  background: rgba(255, 255, 255, 0.12);
+  /* background: rgba(255, 255, 255, 0.12); */
+  color: #000;
 }
 
 .cm-comentario-dia {
@@ -982,7 +987,6 @@
 }
 
 .cm-post-reacoes {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1249,8 +1253,66 @@
 .cm-visibilidade-icone.is-clicavel {
   cursor: pointer;
   border-radius: 999px;
+  gap: 2px;
+  padding: 2px 4px;
 }
 
 .cm-visibilidade-icone.is-clicavel:hover {
+  background: var(--cor-creme);
+}
+
+.cm-visibilidade-seta {
+  color: var(--cor-texto-suave);
+  transition: transform 0.15s ease;
+}
+
+.cm-visibilidade-seta.is-aberta {
+  transform: rotate(180deg);
+}
+
+.cm-post.is-admin .cm-visibilidade-seta {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.cm-visibilidade-dropdown {
+  position: relative;
+  display: flex;
+}
+
+.cm-visibilidade-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  background: var(--cor-branco);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  box-shadow: var(--sombra);
+  padding: 4px;
+}
+
+.cm-visibilidade-opcao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  color: var(--cor-texto);
+  font-size: 13px;
+  text-align: left;
+  padding: 7px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.cm-visibilidade-opcao:hover {
+  background: var(--cor-creme);
+}
+
+.cm-visibilidade-opcao.is-ativa {
+  font-weight: 600;
   background: var(--cor-creme);
 }
