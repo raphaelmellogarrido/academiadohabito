@@ -132,25 +132,67 @@ function descendentes(mysqli $mysqli, int $id): array
     return $ids;
 }
 
+// Nome/avatar ATUAIS de vários alunos numa query só (evita N+1) — sobrepõe
+// nome/avatarUrl "ao vivo" por cima do snapshot salvo em comentarios.nome
+// (ver montarNoRecursivo), assim um post/comentário antigo passa a refletir
+// o nome/foto de HOJE do autor, não o de quando foi escrito. `tem_avatar`
+// calculado em SQL (não traz o MEDIUMBLOB inteiro pra PHP só pra checar
+// vazio) — mesma ideia de avatarUrl em alunoParaUsuario() (_config.php).
+// Devolve [email => ['nome' => ..., 'avatarUrl' => ...|null]].
+function buscarAlunosEmLote(mysqli $mysqli, array $emails): array
+{
+    $out = [];
+    if (!$emails) {
+        return $out;
+    }
+    garantirColunasPerfil($mysqli);
+
+    $placeholders = implode(',', array_fill(0, count($emails), '?'));
+    $tipos = str_repeat('s', count($emails));
+    $stmt = $mysqli->prepare(
+        "SELECT email, nome, avatar_versao,
+                (avatar_blob IS NOT NULL AND avatar_blob <> '') AS tem_avatar
+         FROM alunos WHERE email IN ($placeholders)"
+    );
+    $stmt->bind_param($tipos, ...$emails);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $out[$row['email']] = [
+            'nome' => $row['nome'],
+            'avatarUrl' => $row['tem_avatar']
+                ? '/api/avatar.php?e=' . urlencode($row['email']) . '&v=' . (int) ($row['avatar_versao'] ?? 0)
+                : null,
+        ];
+    }
+    $stmt->close();
+    return $out;
+}
+
 // Monta 1 nó da árvore (shape de NoComentario, sem `humor`/`diaAtual`, que
 // são só da raiz e ficam por conta de montarPost/montarAulaComentario) a
 // partir de dados já buscados em lote — nunca faz query aqui dentro.
 // `admin` fica sempre false: `alunos` ainda não tem papel de admin de
 // verdade, só EMAILS_ORIENTADORES (reaproveitado como "admin" só pra
 // podeExcluir, ver ehOrientadorEmail acima).
-function montarNoRecursivo(int $id, array $linhas, array $filhos, array $reacoesPorId, string $emailAtual): array
+// `alunosPorEmail` (ver buscarAlunosEmLote) sobrepõe nome/avatar ao vivo por
+// cima do snapshot de `comentarios` — cai pro snapshot só se o aluno tiver
+// sido removido de `alunos` depois de comentar.
+function montarNoRecursivo(int $id, array $linhas, array $filhos, array $reacoesPorId, array $alunosPorEmail, string $emailAtual): array
 {
     $row = $linhas[$id];
+    $aluno = $alunosPorEmail[$row['email']] ?? null;
+    $nomeAtual = $aluno['nome'] ?? null;
     $reacoes = $reacoesPorId[$id] ?? ['reacoes' => ['🙏' => 0, '❤️' => 0, '🔥' => 0], 'minhasReacoes' => []];
     $respostas = [];
     foreach (($filhos[$id] ?? []) as $filhoId) {
-        $respostas[] = montarNoRecursivo($filhoId, $linhas, $filhos, $reacoesPorId, $emailAtual);
+        $respostas[] = montarNoRecursivo($filhoId, $linhas, $filhos, $reacoesPorId, $alunosPorEmail, $emailAtual);
     }
     return [
         'id' => (string) $id,
         'userId' => $row['email'],
-        'nome' => $row['nome'] ?: 'Aluno',
-        'avatarUrl' => null, // avatar real fica pra quando esse card entrar (mesmo estado de alunoParaUsuario())
+        'nome' => ($nomeAtual !== null && $nomeAtual !== '') ? $nomeAtual : ($row['nome'] ?: 'Aluno'),
+        'avatarUrl' => $aluno['avatarUrl'] ?? null,
         'admin' => false,
         'texto' => $row['comentario'],
         'foto' => $row['image_mime'] ? ('/api/imagem-comentario.php?id=' . $id) : null,
@@ -222,8 +264,10 @@ function montarArvoreComentario(mysqli $mysqli, int $anyId, string $emailAtual):
 
     $ids = array_map('intval', array_keys($linhas));
     $reacoesPorId = montarReacoesEmLote($mysqli, $ids, $emailAtual);
+    $emails = array_values(array_unique(array_column($linhas, 'email')));
+    $alunosPorEmail = buscarAlunosEmLote($mysqli, $emails);
 
-    return montarNoRecursivo($raizId, $linhas, $filhos, $reacoesPorId, $emailAtual);
+    return montarNoRecursivo($raizId, $linhas, $filhos, $reacoesPorId, $alunosPorEmail, $emailAtual);
 }
 
 // Reconstrói 1 post completo (árvore inteira, raiz + respostas em qualquer
