@@ -185,6 +185,20 @@ export const meditacaoApi = {
     ehProducaoReal
       ? api.post<{ ok: true; desafios: Desafio[] }>("/desafios-alternar.php", { id })
       : api.post<{ ok: true; desafios: Desafio[] }>(`/meditacao/desafios/${id}/alternar`),
+  // Admin only (ver AdminPage.tsx) — mesma checagem de editarEncontro/editarFrase.
+  desafiosAdmin: () =>
+    ehProducaoReal
+      ? api.get<{ ok: true; textos: string[] }>("/desafios-admin.php")
+      : api.get<{ ok: true; textos: string[] }>("/meditacao/desafios/admin"),
+  editarDesafios: (textos: string[]) =>
+    ehProducaoReal
+      ? api.put<{ ok: true; textos: string[] }>("/desafios-editar.php", { textos })
+      : api.put<{ ok: true; textos: string[] }>("/meditacao/desafios", { textos }),
+  // Zera a marcação de todos os usuários (não só de quem chamou).
+  resetarDesafios: () =>
+    ehProducaoReal
+      ? api.post<{ ok: true }>("/desafios-resetar.php")
+      : api.post<{ ok: true }>("/meditacao/desafios/resetar"),
 
   frase: () =>
     ehProducaoReal

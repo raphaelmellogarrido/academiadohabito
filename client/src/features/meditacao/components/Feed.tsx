@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
+import type { EmojiClickData } from "emoji-picker-react";
 import { meditacaoApi, type Humor } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
 import { ComentarioBloco } from "./ComentarioBloco";
@@ -14,14 +15,17 @@ const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; t
 
 const LIMITE_TEXTO = 140;
 
+// Lazy: emoji-picker-react carrega junto a base inteira de emojis (~200KB
+// gzip) — não faz sentido pesar o carregamento inicial da página pra quem
+// nunca abre o picker. Só baixa no primeiro clique no botão de emoji.
+const EmojiPicker = lazy(() => import("emoji-picker-react"));
+
 const HUMORES: { valor: Humor; label: string }[] = [
   { valor: "calma", label: "Calma 😌" },
   { valor: "agitada", label: "Agitada 🌪️" },
   { valor: "cansada", label: "Cansada 😴" },
   { valor: "foco", label: "Foco 🎯" },
 ];
-
-const EMOJIS = ["😊", "😌", "😢", "😴", "🙏", "❤️", "🔥", "🌱", "🪷", "✨", "💪", "🧘", "👍", "🎉", "☀️", "🌙", "💧", "🍃"];
 
 export function Feed() {
   const { posts, carregando, carregandoMais, temMais, carregarMais, adicionarPost, atualizarPost, excluirNoPost } = useFeed();
@@ -172,19 +176,18 @@ export function Feed() {
               <Smile size={15} />
             </button>
             {emojiAberto && (
-              <div className="cm-emoji-picker">
-                {EMOJIS.map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    onClick={() => {
-                      inserirNoCursor(e);
-                      setEmojiAberto(false);
-                    }}
-                  >
-                    {e}
-                  </button>
-                ))}
+              // Lib completa (emoji-picker-react) em vez da lista fixa de
+              // antes — busca + categorias, mesmo espírito do picker do
+              // WhatsApp (ver renato_de_paula/.../DificuldadeDoDia.jsx). Não
+              // fecha o popover ao escolher (mesmo comportamento de lá):
+              // deixa selecionar vários emojis seguidos, só fecha ao clicar
+              // fora (aoClicarFora acima). Width "100%" pro wrapper controlar
+              // o tamanho real — vira bottom sheet em telas de celular (ver
+              // .cm-emoji-picker-pop no CSS).
+              <div className="cm-emoji-picker-pop">
+                <Suspense fallback={null}>
+                  <EmojiPicker onEmojiClick={(dados: EmojiClickData) => inserirNoCursor(dados.emoji)} width="100%" height={360} previewConfig={{ showPreview: false }} />
+                </Suspense>
               </div>
             )}
           </div>

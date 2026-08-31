@@ -27,13 +27,32 @@ export function useAulaComentarios() {
   // qualquer página) e insere no topo quem ainda não apareceu — `cursor`/
   // `temMais` ficam intocados (só avançam via carregarMais).
   //
-  // Exclusão: um id que estava na página 1 do tick anterior e sumiu da
-  // página 1 deste tick foi apagado por alguém — remove do estado local.
-  // `idsPagina1Ref` guarda só ids vistos via poll (nunca os de páginas 2+
-  // carregadas por "carregar mais"), então isso nunca derruba um comentário
-  // que só saiu da janela da página 1 por paginação.
+  // Exclusão real (ou perda de visibilidade: virou privado/orientador e este
+  // usuário não é mais dono nem enxerga): um id que estava na página 1 do
+  // tick anterior e sumiu da página 1 deste tick. `idsPagina1Ref` guarda só
+  // ids vistos via poll (nunca os de páginas 2+ carregadas por "carregar
+  // mais"), então isso nunca derruba um comentário que só saiu da janela por
+  // paginação — mas paginação não é só "carregar mais": a página 1 tem
+  // tamanho fixo, então um comentário novo (ou um que acabou de virar
+  // público, ficando visível pra esse usuário pela 1ª vez) empurra o
+  // comentário que estava na última posição pra fora da janela SEM que ele
+  // tenha sido apagado. `corteAgora` (criadoEm do comentário mais antigo que
+  // ainda está na página 1 agora) resolve isso: um comentário que sumiu da
+  // janela só conta como excluído/privado de verdade se ele ainda seria
+  // cronologicamente elegível pra página 1 pela ordenação atual (criadoEm >=
+  // corte) — se for mais antigo que o corte, só foi empurrado pra fora por
+  // algo mais novo, continua existindo e fica como está até "carregar mais"
+  // alcançá-lo.
+  //
+  // Novo de verdade: o comentário que desliza pra dentro da janela pra
+  // preencher o buraco (de uma exclusão ou de algo que virou público) não é
+  // novo — só ficou visível agora — mas como ainda não está em `idsAtuais`,
+  // tratá-lo como novo o inseriria no topo da lista sem ser o mais recente
+  // de verdade. `topoConhecidoEmRef` guarda o `criadoEm` do comentário mais
+  // recente já visto; só quem foi criado DEPOIS disso entra no topo.
   const primeiraCargaFeita = useRef(false);
   const idsPagina1Ref = useRef<Set<string>>(new Set());
+  const topoConhecidoEmRef = useRef<string | null>(null);
   const pollarPrimeiraPagina = useCallback(async () => {
     const r = await meditacaoApi.aulasComentarios(null);
     const idsPagina1Antes = idsPagina1Ref.current;
@@ -41,17 +60,23 @@ export function useAulaComentarios() {
     idsPagina1Ref.current = idsPagina1Agora;
     if (!primeiraCargaFeita.current) {
       primeiraCargaFeita.current = true;
+      topoConhecidoEmRef.current = r.comentarios[0]?.criadoEm ?? null;
       setComentarios(r.comentarios);
       setCursor(r.proximoCursor);
       setTemMais(r.proximoCursor !== null);
       setCarregando(false);
       return;
     }
+    const topoAntes = topoConhecidoEmRef.current;
+    topoConhecidoEmRef.current = r.comentarios[0]?.criadoEm ?? topoAntes;
+    const corteAgora = r.comentarios.length > 0 ? r.comentarios[r.comentarios.length - 1].criadoEm : null;
     setComentarios((atual) => {
       const idsAtuais = new Set(atual.map((c) => c.id));
-      const semExcluidos = atual.filter((c) => !idsPagina1Antes.has(c.id) || idsPagina1Agora.has(c.id));
+      const semExcluidos = atual.filter(
+        (c) => !idsPagina1Antes.has(c.id) || idsPagina1Agora.has(c.id) || corteAgora === null || c.criadoEm < corteAgora,
+      );
       const atualizados = semExcluidos.map((c) => r.comentarios.find((n) => n.id === c.id) ?? c);
-      const novosDeVerdade = r.comentarios.filter((n) => !idsAtuais.has(n.id));
+      const novosDeVerdade = r.comentarios.filter((n) => !idsAtuais.has(n.id) && (!topoAntes || n.criadoEm > topoAntes));
       return [...novosDeVerdade, ...atualizados];
     });
   }, []);

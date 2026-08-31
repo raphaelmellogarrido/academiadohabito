@@ -124,10 +124,16 @@ reaproveitada em vários lugares como bypass de "pode excluir". `_config.php`
 (sempre o primeiro `require` de todo endpoint) expõe `ehOrientadorEmail()` +
 `exigirAdmin($email)` (mesmo padrão 403 de `exigirSessao()`); `alunoParaUsuario()`
 seta `admin` a partir daí, o que já liga o link "Admin" na TopBar sem
-mexer nela. `encontro-editar.php` e `frase-editar.php` (PUT, ambos atrás de
-`exigirSessao()` + `exigirAdmin()`) são os únicos endpoints de escrita
-restritos a admin — servem o formulário de `/app/admin`
-(`client/src/features/admin/`).
+mexer nela. `encontro-editar.php`, `frase-editar.php` e
+`desafios-editar.php`/`desafios-resetar.php` (todos atrás de
+`exigirSessao()` + `exigirAdmin()`) são os endpoints de escrita restritos a
+admin — servem os formulários de `/app/admin` (`client/src/features/admin/`).
+`desafios-editar.php` reescreve `desafio_config` inteira (delete + insert,
+`ordem` = posição da linha no textarea); `desafios-resetar.php` zera
+`desafio_semana` inteira (todos os alunos, todas as semanas) — mesmo par de
+funções em `api/_desafios.php` (`salvarDesafiosSemana`/`resetarDesafiosSemana`),
+espelhando `editarDesafiosSemana`/`resetarDesafios` do mock
+(`community.store.ts`).
 
 Sem Node App em produção, WebSocket/SSE não são viáveis (mesma limitação do
 topo deste doc) — "atualizar pra todo mundo em até 3s" é feito por

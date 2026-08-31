@@ -43,6 +43,24 @@
     height: auto;
     overflow-y: visible;
   }
+
+  /* Empilhado, o feed ("Sua prática hoje") é o card mais alto da página —
+     composer + posts + comentários. Ele vem no meio no DOM (progresso, feed,
+     encontros) porque no desktop é a coluna central; empilhado, reordenamos
+     só visualmente pra ele vir por último (pedido do cliente: quem entra no
+     celular vê primeiro o essencial — progresso e encontros — antes do feed
+     grande). */
+  .cm-col-progresso {
+    order: 1;
+  }
+
+  .cm-col-encontros {
+    order: 2;
+  }
+
+  .cm-col-feed {
+    order: 3;
+  }
 }
 
 /* Botão Meditei hoje */
@@ -710,36 +728,23 @@
   position: relative;
 }
 
-.cm-emoji-picker {
+/* Popover do emoji-picker-react (ver Feed.tsx) — no desktop fica ancorado
+   sob o botão, largura fixa; width="100%" passado ao componente faz a lib
+   preencher esse wrapper (ver .EmojiPickerReact, root da lib, pra qualquer
+   ajuste de cor/borda). Em telas de celular vira bottom sheet (ver
+   breakpoint 640px abaixo) — um popover de ~320px de largura ancorado em
+   position:absolute estouraria a viewport em telas de 320-375px. */
+.cm-emoji-picker-pop {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   z-index: 5;
-  width: 224px;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
-  background: var(--cor-branco);
-  border: 1px solid var(--cor-borda);
-  border-radius: 10px;
+  width: 320px;
+}
+
+.cm-emoji-picker-pop .EmojiPickerReact {
   box-shadow: var(--sombra);
-  padding: 8px;
-}
-
-.cm-emoji-picker button {
-  border: none;
-  background: none;
-  font-size: 16px;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cm-emoji-picker button:hover {
-  background: var(--cor-creme);
+  border-radius: 10px !important;
 }
 
 .cm-composer-textarea-wrap {
@@ -1048,6 +1053,10 @@
   margin: 0 0 8px;
   font-size: 14px;
   line-height: 1.45;
+  /* Uma URL ou email longo sem espaços não pode estourar a largura do card
+     e criar scroll horizontal na página inteira — texto normal continua
+     quebrando por espaço, só a palavra grande demais parte no meio. */
+  overflow-wrap: anywhere;
 }
 
 .cm-post-acoes {
@@ -1142,6 +1151,58 @@
 @media (max-width: 1180px) {
   .cm-aulas {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Breakpoint de celular (mais apertado que os 1180px/860px de tablet acima)
+   — ajustes finos que só fazem falta em telas de 320-640px: cartões densos
+   demais, grid de 3 colunas apertando texto, popover de emoji que precisa
+   virar bottom sheet. */
+@media (max-width: 640px) {
+  .cm-composer-pergunta {
+    font-size: 16.5px;
+  }
+
+  .cm-post {
+    padding: 12px;
+  }
+
+  .cm-composer-textarea-wrap {
+    padding: 10px 12px 24px;
+  }
+
+  /* "pessoas meditaram hoje" / "partilhas hoje" / "dias de presença somados"
+     não cabem em 3 colunas iguais numa tela de celular sem quebrar feio —
+     2 colunas, o 3º item desce pra linha de baixo. */
+  .cm-meditando-junto {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cm-jornada-anel {
+    width: 116px;
+    height: 116px;
+  }
+
+  .cm-jornada-anel-centro {
+    width: 88px;
+    height: 88px;
+  }
+
+  /* Bottom sheet: um popover ancorado de ~320px de largura estouraria a
+     viewport nessas telas — vira uma folha fixa na base da tela, largura
+     cheia (a lib recebe width="100%" no componente, ver Feed.tsx). */
+  .cm-emoji-picker-pop {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    z-index: 60;
+  }
+
+  .cm-emoji-picker-pop .EmojiPickerReact {
+    border-radius: 14px 14px 0 0 !important;
   }
 }
 

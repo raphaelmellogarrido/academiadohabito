@@ -296,6 +296,33 @@ export function alternarDesafio(userId: string, desafioId: string) {
   return getDesafiosDaSemana(userId);
 }
 
+// Textos crus (sem `concluido`, que é por-usuário) pro form de /admin — ver
+// CardDesafiosAdmin.tsx.
+export function getDesafiosSemanaAdmin() {
+  return DESAFIOS_SEMANA.map((d) => d.texto);
+}
+
+// Reescreve a lista inteira de desafios (1 item por linha no form) — ids
+// viram sequenciais "1", "2", "3"... por posição. Igual a editarEncontro,
+// não tenta preservar id por texto: trocar a lista é raro e reordenar tudo é
+// simples de raciocinar. `CONCLUIDOS` não é tocado aqui — quem já tinha
+// marcado um id que deixou de existir simplesmente não vê mais nada
+// correspondente (getDesafiosDaSemana só mapeia DESAFIOS_SEMANA atual).
+export function editarDesafiosSemana(textos: string[]) {
+  const limpos = textos.map((t) => t.trim()).filter(Boolean).slice(0, 10);
+  DESAFIOS_SEMANA.length = 0;
+  limpos.forEach((texto, i) => DESAFIOS_SEMANA.push({ id: String(i + 1), texto: texto.slice(0, 140) }));
+  return getDesafiosSemanaAdmin();
+}
+
+// Botão "Resetar desafios" do /admin — limpa a marcação de TODOS os
+// usuários (todas as chaves `userId:semanaISO`, não só a semana atual), pra
+// já valer imediatamente se o admin também tiver acabado de trocar os
+// textos acima.
+export function resetarDesafios() {
+  CONCLUIDOS.clear();
+}
+
 // --- Frase da semana (editável no /admin) -----------------------------------
 const FRASE = { frase: "A calma que você procura não está lá fora. Ela mora na sua respiração.", autor: "Dr. Renato" };
 

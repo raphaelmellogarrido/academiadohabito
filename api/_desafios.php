@@ -33,3 +33,42 @@ function buscarDesafiosDaSemana(mysqli $mysqli, string $email): array
 
     return array_values($itens);
 }
+
+// Textos crus (sem `concluido`, que é por-aluno) pro form de /admin — ver
+// desafios-admin.php / CardDesafiosAdmin.tsx. Mesma query de
+// buscarDesafiosDaSemana acima, só que devolve só o título.
+function buscarDesafiosAdmin(mysqli $mysqli): array
+{
+    $textos = [];
+    $res = $mysqli->query("SELECT titulo FROM desafio_config ORDER BY ordem");
+    while ($row = $res->fetch_assoc()) {
+        $textos[] = $row['titulo'];
+    }
+    return $textos;
+}
+
+// Reescreve a lista inteira de desafios (1 item por linha no form) — apaga
+// todo desafio_config e reinsere com `ordem` = posição na lista. IDs novos
+// (AUTO_INCREMENT) não têm por quê bater com os antigos — igual ao mock
+// (editarDesafiosSemana em community.store.ts), quem já tinha marcado um id
+// que deixou de existir simplesmente não vê mais nada correspondente em
+// desafio_semana (buscarDesafiosDaSemana só junta pelos ids atuais).
+function salvarDesafiosSemana(mysqli $mysqli, array $textos): array
+{
+    $mysqli->query("DELETE FROM desafio_config");
+    $stmt = $mysqli->prepare("INSERT INTO desafio_config (titulo, ordem) VALUES (?, ?)");
+    foreach (array_values($textos) as $i => $titulo) {
+        $stmt->bind_param('si', $titulo, $i);
+        $stmt->execute();
+    }
+    $stmt->close();
+    return buscarDesafiosAdmin($mysqli);
+}
+
+// Botão "Resetar desafios" do /admin — zera a marcação de TODOS os alunos
+// (todas as semanas, não só a atual), mesmo comportamento de
+// resetarDesafios() no mock (CONCLUIDOS.clear()).
+function resetarDesafiosSemana(mysqli $mysqli): void
+{
+    $mysqli->query("DELETE FROM desafio_semana");
+}

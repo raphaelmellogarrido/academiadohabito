@@ -65,3 +65,12 @@
 .adm-campo--linha input {
   width: auto;
 }
+
+/* Fileira de botões quando o card tem mais de uma ação (ex: CardDesafiosAdmin
+   — "Salvar desafios" + "Resetar desafios"). Os dois cfg-btn-* já são
+   align-self: flex-start; sem isso ficariam empilhados um sobre o outro. */
+.adm-card-acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

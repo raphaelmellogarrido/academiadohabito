@@ -337,4 +337,20 @@
     padding: 1px 8px;
     margin-top: 2px;
   }
+
+  /* "Olá, Fulano da Silva" com white-space:nowrap (regra de desktop) mais
+     nome comprido numa tela estreita força o flex a ultrapassar 100vw — a
+     TopBar é position:fixed, então isso vira scroll horizontal na página
+     inteira, não só corte visual. min-width:0 deixa o flex item encolher de
+     verdade; o texto trunca em vez de estourar. */
+  .cm-profile {
+    min-width: 0;
+  }
+
+  .cm-profile-texto {
+    min-width: 0;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }

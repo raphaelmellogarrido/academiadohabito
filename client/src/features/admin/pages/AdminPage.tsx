@@ -2,6 +2,7 @@ import { useOutletContext } from "react-router-dom";
 import type { Usuario } from "../../../shared/hooks/useAuth";
 import { CardEncontroAdmin } from "../components/CardEncontroAdmin";
 import { CardFraseAdmin } from "../components/CardFraseAdmin";
+import { CardDesafiosAdmin } from "../components/CardDesafiosAdmin";
 import "../admin.css";
 
 type ContextoApp = { usuario: Usuario; atualizarUsuario: (patch: Partial<Usuario>) => void };
@@ -29,6 +30,7 @@ export function AdminPage() {
       <div className="adm-grid">
         <CardEncontroAdmin />
         <CardFraseAdmin />
+        <CardDesafiosAdmin />
       </div>
     </div>
   );

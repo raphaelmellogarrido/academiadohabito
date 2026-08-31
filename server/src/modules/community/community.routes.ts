@@ -10,6 +10,9 @@ import {
   excluirPost,
   getDesafiosDaSemana,
   alternarDesafio,
+  getDesafiosSemanaAdmin,
+  editarDesafiosSemana,
+  resetarDesafios,
   getFrase,
   editarFrase,
   type Visibilidade,
@@ -92,6 +95,34 @@ communityRouter.post("/meditacao/desafios/:id/alternar", requireAuth, (req, res)
   const desafios = alternarDesafio(usuario.id, String(req.params.id));
   if (!desafios) return res.status(404).json({ erro: "desafio não encontrado" });
   res.json({ ok: true, desafios });
+});
+
+// Admin (/app/admin, CardDesafiosAdmin.tsx) edita os textos dos desafios da
+// semana e pode zerar a marcação de todo mundo — mesmo padrão 403 de
+// /meditacao/frase abaixo.
+communityRouter.get("/meditacao/desafios/admin", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  if (!usuario.admin) return res.status(403).json({ erro: "somente admin" });
+  res.json({ ok: true, textos: getDesafiosSemanaAdmin() });
+});
+
+communityRouter.put("/meditacao/desafios", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  if (!usuario.admin) return res.status(403).json({ erro: "somente admin" });
+  const { textos } = req.body ?? {};
+  if (!Array.isArray(textos) || !textos.some((t) => String(t).trim())) {
+    return res.status(400).json({ erro: "lista vazia" });
+  }
+  res.json({ ok: true, textos: editarDesafiosSemana(textos.map(String)) });
+});
+
+// Zera a marcação de TODOS os usuários (não só quem chamou) — usado depois
+// de trocar os textos acima, ou só pra recomeçar a semana na mão.
+communityRouter.post("/meditacao/desafios/resetar", requireAuth, (req, res) => {
+  const usuario = (req as any).usuario;
+  if (!usuario.admin) return res.status(403).json({ erro: "somente admin" });
+  resetarDesafios();
+  res.json({ ok: true });
 });
 
 communityRouter.get("/meditacao/frase", requireAuth, (_req, res) => {
