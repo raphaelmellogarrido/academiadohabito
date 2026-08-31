@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
-import type { EmojiClickData } from "emoji-picker-react";
+import { EmojiStyle, type EmojiClickData } from "emoji-picker-react";
 import { meditacaoApi, type Humor } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
 import { ComentarioBloco } from "./ComentarioBloco";
@@ -186,7 +186,14 @@ export function Feed() {
               // .cm-emoji-picker-pop no CSS).
               <div className="cm-emoji-picker-pop">
                 <Suspense fallback={null}>
-                  <EmojiPicker onEmojiClick={(dados: EmojiClickData) => inserirNoCursor(dados.emoji)} width="100%" height={360} previewConfig={{ showPreview: false }} />
+                  {/* emojiStyle="native": sem isso a lib busca cada emoji como
+                      imagem de um CDN externo (jsdelivr) — com centenas de
+                      requests em paralelo a grade fica praticamente em
+                      branco por vários segundos depois de abrir (bug
+                      reportado: "não dá pra ver nada"). Native usa a fonte
+                      de emoji do SO, renderiza na hora e não depende de
+                      rede. */}
+                  <EmojiPicker onEmojiClick={(dados: EmojiClickData) => inserirNoCursor(dados.emoji)} width="100%" height={360} previewConfig={{ showPreview: false }} emojiStyle={EmojiStyle.NATIVE} />
                 </Suspense>
               </div>
             )}
