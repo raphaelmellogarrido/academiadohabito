@@ -49,23 +49,32 @@ if (is_string($avatarDataUri) && preg_match('#^data:(image/(?:jpeg|png|webp));ba
     }
 }
 
-if ($avatarBlob !== null) {
-    $stmt = $mysqli->prepare(
-        "UPDATE alunos SET nome = ?, apelido = ?, avatar_blob = ?, avatar_mime = ?, avatar_versao = avatar_versao + 1
-         WHERE email = ?"
-    );
-    $stmt->bind_param('sssss', $nome, $primeiroNome, $avatarBlob, $avatarMime, $email);
-} else {
-    $stmt = $mysqli->prepare("UPDATE alunos SET nome = ?, apelido = ? WHERE email = ?");
-    $stmt->bind_param('sss', $nome, $primeiroNome, $email);
+// TEMP: try/catch só pra expor a mensagem real de um 500 aqui (o mysqli no
+// PHP 8.1+ lança exception em erro de query/prepare por padrão, e sem isso
+// o response não vira JSON e o client só mostra "Erro 500" genérico — ver
+// apiClient.ts request()). Remover depois que o bug de avatar for resolvido.
+try {
+    if ($avatarBlob !== null) {
+        $stmt = $mysqli->prepare(
+            "UPDATE alunos SET nome = ?, apelido = ?, avatar_blob = ?, avatar_mime = ?, avatar_versao = avatar_versao + 1
+             WHERE email = ?"
+        );
+        $stmt->bind_param('sssss', $nome, $primeiroNome, $avatarBlob, $avatarMime, $email);
+    } else {
+        $stmt = $mysqli->prepare("UPDATE alunos SET nome = ?, apelido = ? WHERE email = ?");
+        $stmt->bind_param('sss', $nome, $primeiroNome, $email);
+    }
+    $stmt->execute();
+    $stmt->close();
+
+    $stmt = $mysqli->prepare("SELECT * FROM alunos WHERE email = ? LIMIT 1");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $aluno = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    echo json_encode(['ok' => true, 'usuario' => alunoParaUsuario($aluno)]);
+} catch (\Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'erro' => get_class($e) . ': ' . $e->getMessage()]);
 }
-$stmt->execute();
-$stmt->close();
-
-$stmt = $mysqli->prepare("SELECT * FROM alunos WHERE email = ? LIMIT 1");
-$stmt->bind_param('s', $email);
-$stmt->execute();
-$aluno = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
-echo json_encode(['ok' => true, 'usuario' => alunoParaUsuario($aluno)]);

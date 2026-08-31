@@ -55,20 +55,21 @@ function isoLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// 7 bolinhas Dom-Sáb da semana atual — zera tudo junto quando `streak` quebra
-// (gap > 1 dia), preenchida por POSIÇÃO relativa a hoje dentro do streak
-// atual, não por presença isolada no histórico (mesmo algoritmo do app
-// antigo — ver useSequenciaMeditacao.js na raiz do repo irmão).
+// 7 bolinhas em janela ROLANTE dos últimos 7 dias (hoje e os 6 anteriores) —
+// não fica presa à semana de calendário (Dom-Sáb), senão o streak "some" toda
+// vez que vira domingo mesmo sem a pessoa ter faltado nenhum dia. Só apaga
+// bolinha quando o streak realmente quebra (gap > 1 dia); preenchida por
+// POSIÇÃO relativa a hoje dentro do streak atual, não por presença isolada
+// no histórico (mesmo algoritmo do app antigo — ver useSequenciaMeditacao.js
+// na raiz do repo irmão).
 function calcularBolinhas(historico: Set<string>, streak: number) {
   const hoje = dataDeIso(hojeBrasilISO());
   const offsetAncora = historico.has(isoLocal(hoje)) ? 0 : 1;
-  const domingo = new Date(hoje);
-  domingo.setDate(hoje.getDate() - hoje.getDay());
 
   return Array.from({ length: 7 }, (_, i) => {
-    const data = new Date(domingo);
-    data.setDate(domingo.getDate() + i);
-    const diasAtras = Math.round((hoje.getTime() - data.getTime()) / 86400000);
+    const diasAtras = 6 - i;
+    const data = new Date(hoje);
+    data.setDate(hoje.getDate() - diasAtras);
     const concluido = diasAtras >= offsetAncora && diasAtras < offsetAncora + streak;
     return { iso: isoLocal(data), label: LABEL_DIA_SEMANA[data.getDay()], concluido, hoje: diasAtras === 0 };
   });

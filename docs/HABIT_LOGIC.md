@@ -16,8 +16,10 @@ Ver `server/src/modules/habits/habits.data.ts`, `user-habits/user-habits.store.t
 
 ## Gamificação (meditação)
 - **Sequência**: streak de dias consecutivos com check-in
-  (`POST /api/meditacao/meditei-hoje`), quebra se faltar 1 dia. 7 bolinhas
-  Dom–Sáb da semana atual.
+  (`POST /api/meditacao/meditei-hoje`), quebra se faltar 1 dia. 7 bolinhas em
+  janela rolante dos últimos 7 dias (hoje + 6 anteriores) — não é a semana de
+  calendário, então elas não zeram sozinhas ao virar domingo; só apagam se a
+  pessoa realmente deixar de marcar algum dia.
 - **Jornada**: `aulasAssistidas / 48`. Simplificação do MVP: cada
   "Meditei hoje" avança 1 aula (não há catálogo de vídeo ainda).
 - **Meditando Junto**: pulso agregado de todos os usuários —
