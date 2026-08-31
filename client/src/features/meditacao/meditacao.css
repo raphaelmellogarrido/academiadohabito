@@ -982,6 +982,11 @@
   justify-content: center;
   font-weight: 700;
   font-size: 13px;
+  flex-shrink: 0;
+}
+
+.cm-post-avatar-img {
+  object-fit: cover;
 }
 
 .cm-post-cabecalho strong {

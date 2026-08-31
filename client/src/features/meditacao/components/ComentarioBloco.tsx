@@ -118,7 +118,11 @@ export function ComentarioBloco({
   return (
     <div className={`cm-post ${nivel > 0 ? "cm-post--resposta" : ""} ${no.admin ? "is-admin" : ""}`}>
       <div className="cm-post-cabecalho">
-        <div className="cm-post-avatar">{no.nome.slice(0, 1).toUpperCase()}</div>
+        {no.avatarUrl ? (
+          <img src={no.avatarUrl} alt="" className="cm-post-avatar cm-post-avatar-img" />
+        ) : (
+          <div className="cm-post-avatar">{no.nome.slice(0, 1).toUpperCase()}</div>
+        )}
         <div className="cm-post-cabecalho-topo">
           <div>
             <strong>{no.nome}</strong>
