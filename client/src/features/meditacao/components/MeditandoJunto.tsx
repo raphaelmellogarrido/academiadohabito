@@ -6,14 +6,15 @@ import type { Pulso } from "../api/meditacaoApi";
 export function MeditandoJunto({ pulso }: { pulso: Pulso }) {
   return (
     <div className="cartao">
-      <p className="cm-meditando-junto-titulo">Meditando junto</p>
+      {/* <p className="cm-meditando-junto-titulo">MEDITANDO JUNTO</p> */}
+      <p className="cartao-titulo cm-encontro-titulo">🧘 Meditando junto</p>
       <div className="cm-meditando-junto">
         <div className="cm-mj-item">
           <span className="cm-mj-icone">
             <Users size={20} strokeWidth={1.75} />
           </span>
           <p>
-            <strong>{pulso.hojeCheckins}</strong> pessoas meditaram hoje
+            <strong>{pulso.hojeCheckins}</strong> <p>pessoas meditaram hoje</p>
           </p>
         </div>
         <div className="cm-mj-item">
@@ -21,7 +22,7 @@ export function MeditandoJunto({ pulso }: { pulso: Pulso }) {
             <MessageCircle size={20} strokeWidth={1.75} />
           </span>
           <p>
-            <strong>{pulso.partilhasHoje}</strong> partilhas
+            <strong>{pulso.partilhasHoje}</strong> <p>partilhas hoje</p>
           </p>
         </div>
         <div className="cm-mj-item">
@@ -29,7 +30,7 @@ export function MeditandoJunto({ pulso }: { pulso: Pulso }) {
             <Calendar size={20} strokeWidth={1.75} />
           </span>
           <p>
-            <strong>{pulso.totalPresenca}</strong> dias presença somados
+            <strong>{pulso.totalPresenca}</strong> <p>dias de presença somados</p>
           </p>
         </div>
       </div>

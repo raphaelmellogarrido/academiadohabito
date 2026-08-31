@@ -3,6 +3,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+  /* Altura = viewport menos a TopBar (64px) e o padding vertical do
+     .cm-conteudo (24px em cima + 24px embaixo) — a página em si não rola,
+     só as colunas internamente. */
+  height: calc(100vh - 64px - 48px);
 }
 
 .cm-col-feed,
@@ -11,11 +15,33 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* Cada coluna rola dentro de si mesma: as colunas 1 e 3 ficam paradas no
+     lugar, só a do feed (meio) precisa rolar pra ver mensagens antigas. */
+  height: 100%;
+  overflow-y: auto;
+  /* Rola normalmente, só esconde a barra de scroll visual (Firefox). */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cm-col-feed::-webkit-scrollbar,
+.cm-col-progresso::-webkit-scrollbar,
+.cm-col-encontros::-webkit-scrollbar {
+  /* Esconde a barra de scroll visual (Chrome/Safari/Edge). */
+  display: none;
 }
 
 @media (max-width: 1180px) {
   .cm-dashboard {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .cm-col-feed,
+  .cm-col-progresso,
+  .cm-col-encontros {
+    height: auto;
+    overflow-y: visible;
   }
 }
 

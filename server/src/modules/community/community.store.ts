@@ -118,11 +118,20 @@ function encontrarPostDoNo(id: string): Post | null {
   return FEED.find((p) => encontrarNo(p, id) !== null) ?? null;
 }
 
-export function listarFeed(usuarioAtual: { id: string; email: string; admin: boolean }) {
-  return [...FEED]
+// Scroll infinito: mais recentes primeiro, paginado por cursor (id do último
+// post já recebido pelo client) — mesmo esquema de aulas.comentarios.ts,
+// só que 20 por página (feed principal do dashboard, pode passar de 1000
+// posts e não pode travar renderizando tudo de uma vez).
+const PAGINA_FEED = 20;
+
+export function listarFeed(cursor: string | null, usuarioAtual: { id: string; email: string; admin: boolean }) {
+  const ordenados = [...FEED]
     .filter((p) => podeVerPost(p, usuarioAtual))
-    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
-    .map((p) => paraClientePost(p, usuarioAtual));
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm) || Number(b.id) - Number(a.id));
+  const inicio = cursor ? ordenados.findIndex((p) => p.id === cursor) + 1 : 0;
+  const pagina = ordenados.slice(inicio, inicio + PAGINA_FEED);
+  const proximoCursor = inicio + PAGINA_FEED < ordenados.length ? pagina[pagina.length - 1]?.id ?? null : null;
+  return { posts: pagina.map((p) => paraClientePost(p, usuarioAtual)), proximoCursor };
 }
 
 export function criarPost(

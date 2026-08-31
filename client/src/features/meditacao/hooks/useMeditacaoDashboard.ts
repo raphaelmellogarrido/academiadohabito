@@ -23,14 +23,17 @@ export function useMeditacaoDashboard() {
     if (pul.status === "fulfilled") setPulso(pul.value);
   }, []);
 
-  // Poll a cada 3s (usePolling) — "Meditando junto" reflete check-ins,
-  // partilhas e dias de presença de QUALQUER aluno em até 3s, não só do
-  // próprio (ver docs/ARCHITECTURE.md).
+  // Poll a cada 10s (usePolling) — "Meditando junto" reflete check-ins,
+  // partilhas e dias de presença de QUALQUER aluno em até 10s, não só do
+  // próprio (ver docs/ARCHITECTURE.md). 3 chamadas por tick (sequência +
+  // jornada + meditando junto), então intervalo maior que o Feed pra não
+  // somar carga demais na hospedagem compartilhada (cada chamada abre sua
+  // própria conexão MySQL — ver api/_config.php).
   const carregarUmaVez = useCallback(async () => {
     await recarregar();
     setCarregando(false);
   }, [recarregar]);
-  usePolling(carregarUmaVez, 3000);
+  usePolling(carregarUmaVez, 10000);
 
   const mediteiHoje = useCallback(async () => {
     setMarcando(true);

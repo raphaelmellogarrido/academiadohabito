@@ -175,10 +175,10 @@ export const meditacaoApi = {
           .then(({ ok, frase, subfrase }) => ({ ok, frase, autor: subfrase }))
       : api.put<{ ok: true; frase: string; autor: string }>("/meditacao/frase", { frase, autor }),
 
-  feed: () =>
+  feed: (cursor: string | null) =>
     ehProducaoReal
-      ? api.get<{ ok: true; posts: Post[] }>("/feed.php")
-      : api.get<{ ok: true; posts: Post[] }>("/meditacao/feed"),
+      ? api.get<{ ok: true; posts: Post[]; proximoCursor: string | null }>(`/feed.php${cursor ? `?cursor=${cursor}` : ""}`)
+      : api.get<{ ok: true; posts: Post[]; proximoCursor: string | null }>(`/meditacao/feed${cursor ? `?cursor=${cursor}` : ""}`),
   postar: (texto: string, foto: string | null, visibilidade: Visibilidade, humor: Humor | null = null) =>
     ehProducaoReal
       ? api.post<{ ok: true; post: Post }>("/feed.php", { texto, foto, visibilidade, humor })

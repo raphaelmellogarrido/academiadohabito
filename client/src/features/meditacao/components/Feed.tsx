@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
-import { meditacaoApi, type Humor, type Post } from "../api/meditacaoApi";
+import { meditacaoApi, type Humor } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
 import { ComentarioBloco } from "./ComentarioBloco";
-import { usePolling } from "../../../shared/hooks/usePolling";
+import { useFeed } from "../hooks/useFeed";
 
 const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; tag?: string }> = {
   publico: { icone: "🌍", texto: "Visível para toda comunidade — sua experiência pode acolher outra pessoa" },
@@ -23,7 +23,7 @@ const HUMORES: { valor: Humor; label: string }[] = [
 const EMOJIS = ["😊", "😌", "😢", "😴", "🙏", "❤️", "🔥", "🌱", "🪷", "✨", "💪", "🧘", "👍", "🎉", "☀️", "🌙", "💧", "🍃"];
 
 export function Feed() {
-  const [posts, setPosts] = useState<Post[] | null>(null);
+  const { posts, carregando, carregandoMais, temMais, carregarMais, adicionarPost, atualizarPost, excluirNoPost } = useFeed();
   const [texto, setTexto] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
   const [visibilidade, setVisibilidade] = useState<Visibilidade>("publico");
@@ -33,16 +33,22 @@ export function Feed() {
   const inputFoto = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
+  const sentinelaRef = useRef<HTMLDivElement>(null);
 
-  // Poll a cada 3s: post novo, reação, edição, exclusão ou mudança de
-  // visibilidade de QUALQUER pessoa aparece aqui em até 3s. `key={p.id}` no
-  // map abaixo faz o React reconciliar por id em vez de remontar, então
-  // estado local de cada ComentarioBloco (caixa de resposta aberta, etc.)
-  // sobrevive ao replace do array a cada tick.
-  usePolling(async () => {
-    const r = await meditacaoApi.feed();
-    setPosts(r.posts);
-  }, 3000);
+  // Scroll infinito: 20 posts por vez (mais recentes primeiro); observa a
+  // sentinela no fim da lista e carrega a próxima leva quando ela entra na
+  // viewport — mesmo padrão de ComentariosAulas.tsx, sem libs extras. Evita
+  // travar renderizando os 1000+ comentários de uma vez só.
+  useEffect(() => {
+    const alvo = sentinelaRef.current;
+    if (!alvo || !temMais) return;
+    const observer = new IntersectionObserver(
+      (entradas) => entradas[0].isIntersecting && carregarMais(),
+      { rootMargin: "120px" },
+    );
+    observer.observe(alvo);
+    return () => observer.disconnect();
+  }, [temMais, carregarMais]);
 
   // Fecha o picker de emoji ao clicar fora dele.
   useEffect(() => {
@@ -99,7 +105,7 @@ export function Feed() {
     setEnviando(true);
     try {
       const r = await meditacaoApi.postar(texto, foto, visibilidade, humor);
-      setPosts((atual) => [r.post, ...(atual ?? [])]);
+      adicionarPost(r.post);
       setTexto("");
       setFoto(null);
       if (inputFoto.current) inputFoto.current.value = "";
@@ -108,47 +114,35 @@ export function Feed() {
     }
   }
 
-  function aoMudarPost(post: Post) {
-    setPosts((atual) => (atual ?? []).map((p) => (p.id === post.id ? post : p)));
-  }
-
-  function aoExcluirPost(id: string) {
-    setPosts((atual) => (atual ?? []).filter((p) => p.id !== id));
-  }
-
   // Callbacks genéricos passados pro ComentarioBloco — `id` pode ser o post
   // raiz ou qualquer resposta dele em qualquer profundidade; o servidor
   // resolve a raiz e devolve a árvore inteira já atualizada, que aqui
   // substitui o post certo na lista top-level (mesma chave: raiz.id).
   async function aoReagir(id: string, reacao: "🙏" | "❤️" | "🔥") {
     const r = await meditacaoApi.reagir(id, reacao);
-    aoMudarPost(r.post);
+    atualizarPost(r.post);
   }
 
   async function aoResponder(id: string, texto: string) {
     const r = await meditacaoApi.responder(id, texto);
-    aoMudarPost(r.post);
+    atualizarPost(r.post);
   }
 
   async function aoEditar(id: string, texto: string) {
     const r = await meditacaoApi.editarPost(id, texto);
-    aoMudarPost(r.post);
+    atualizarPost(r.post);
   }
 
   async function aoAlterarVisibilidade(id: string, visibilidade: Visibilidade) {
     const r = await meditacaoApi.alterarVisibilidadePost(id, visibilidade);
-    aoMudarPost(r.post);
+    atualizarPost(r.post);
   }
 
   // Apagar a raiz remove o post inteiro da lista; apagar uma resposta
   // aninhada substitui o post pela árvore restante (sem essa resposta).
   async function aoExcluir(id: string) {
     const r = await meditacaoApi.excluirPost(id);
-    if (r.raiz === null) {
-      aoExcluirPost(r.raizId);
-    } else {
-      aoMudarPost(r.raiz);
-    }
+    excluirNoPost(r.raizId, r.raiz);
   }
 
   return (
@@ -224,8 +218,8 @@ export function Feed() {
         </div>
       </div>
 
-      {posts === null && <p className="carregando">Carregando…</p>}
-      {posts?.map((p) => (
+      {carregando && <p className="carregando">Carregando…</p>}
+      {posts.map((p) => (
         <ComentarioBloco
           key={p.id}
           no={p}
@@ -237,6 +231,9 @@ export function Feed() {
           onExcluir={aoExcluir}
         />
       ))}
+
+      <div ref={sentinelaRef} />
+      {carregandoMais && <p className="carregando">Carregando mais…</p>}
     </div>
   );
 }

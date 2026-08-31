@@ -18,6 +18,7 @@ require __DIR__ . '/_sessao.php'; // dá exigirSessao()
 $email = exigirSessao();          // já responde 401 e sai se não houver sessão
 
 require __DIR__ . '/_config.php'; // dá $mysqli + alunoParaUsuario()
+garantirColunasPerfil($mysqli);   // colunas de avatar podem não existir ainda
 
 $stmt = $mysqli->prepare("SELECT * FROM alunos WHERE email = ? LIMIT 1");
 $stmt->bind_param('s', $email);

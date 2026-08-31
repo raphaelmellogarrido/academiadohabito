@@ -19,14 +19,32 @@ if ($metodo === 'GET') {
     // real de múltiplos alunos, então aplica visibilidade de verdade —
     // 'privado' só aparece pro próprio autor, 'orientador' pro autor +
     // e-mails de EMAILS_ORIENTADORES (ver condVisibilidadeSql em _feed.php).
+    //
+    // Scroll infinito: mais recentes primeiro, paginado por cursor (id do
+    // último post já recebido pelo client) — mesmo esquema de
+    // aulas-comentarios.php, só que 20 por página (feed principal do
+    // dashboard, pode passar de 1000 posts e não pode travar renderizando
+    // tudo de uma vez).
     $aulaId = AULA_ID_FEED;
+    $cursor = isset($_GET['cursor']) ? (int) $_GET['cursor'] : 0;
+    $limite = 20;
     $souOrientador = ehOrientadorEmail($email) ? 1 : 0;
-    $stmt = $mysqli->prepare(
-        "SELECT id FROM comentarios
-         WHERE aula_id = ? AND parent_id IS NULL AND " . condVisibilidadeSql() . "
-         ORDER BY created_at DESC, id DESC LIMIT 30"
-    );
-    $stmt->bind_param('ssi', $aulaId, $email, $souOrientador);
+
+    if ($cursor > 0) {
+        $stmt = $mysqli->prepare(
+            "SELECT id FROM comentarios
+             WHERE aula_id = ? AND id < ? AND parent_id IS NULL AND " . condVisibilidadeSql() . "
+             ORDER BY id DESC LIMIT ?"
+        );
+        $stmt->bind_param('sisii', $aulaId, $cursor, $email, $souOrientador, $limite);
+    } else {
+        $stmt = $mysqli->prepare(
+            "SELECT id FROM comentarios
+             WHERE aula_id = ? AND parent_id IS NULL AND " . condVisibilidadeSql() . "
+             ORDER BY id DESC LIMIT ?"
+        );
+        $stmt->bind_param('ssii', $aulaId, $email, $souOrientador, $limite);
+    }
     $stmt->execute();
     $res = $stmt->get_result();
     $ids = [];
@@ -43,7 +61,10 @@ if ($metodo === 'GET') {
         }
     }
 
-    echo json_encode(['ok' => true, 'posts' => $posts]);
+    // Tem mais página se veio o lote cheio (mesma heurística de aulas-comentarios.php).
+    $proximoCursor = count($posts) === $limite ? $posts[count($posts) - 1]['id'] : null;
+
+    echo json_encode(['ok' => true, 'posts' => $posts, 'proximoCursor' => $proximoCursor]);
     exit;
 }
 

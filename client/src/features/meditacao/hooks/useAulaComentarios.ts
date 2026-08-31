@@ -16,9 +16,11 @@ export function useAulaComentarios() {
     setTemMais(r.proximoCursor !== null);
   }, []);
 
-  // Poll a cada 3s só da 1ª página — usado tanto pra carga inicial quanto
+  // Poll a cada 10s só da 1ª página — usado tanto pra carga inicial quanto
   // pra manter a lista fresca (novo comentário/reação/exclusão de qualquer
-  // pessoa em até 3s). Não pode reusar `carregarPagina(null)` direto pros
+  // pessoa em até 10s; mais devagar que o Feed do dashboard — ver
+  // comentário em useMeditacaoDashboard.ts sobre carga na hospedagem
+  // compartilhada). Não pode reusar `carregarPagina(null)` direto pros
   // ticks seguintes: ela SUBSTITUI `comentarios` inteiro pela página 1,
   // apagando páginas 2+ que o aluno já carregou via "carregar mais". Depois
   // da 1ª carga, cada tick só atualiza por id quem já está na lista (em
@@ -42,7 +44,7 @@ export function useAulaComentarios() {
       return [...novosDeVerdade, ...atualizados];
     });
   }, []);
-  usePolling(pollarPrimeiraPagina, 3000);
+  usePolling(pollarPrimeiraPagina, 10000);
 
   const carregarMais = useCallback(async () => {
     if (!temMais || carregandoMais) return;

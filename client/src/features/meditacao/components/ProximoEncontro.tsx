@@ -25,14 +25,16 @@ export function ProximoEncontro() {
   const [encontro, setEncontro] = useState<Encontro | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  // Poll a cada 3s: reservas de outros alunos e qualquer edição feita no
+  // Poll a cada 10s: reservas de outros alunos e qualquer edição feita no
   // admin (título, data, "ao vivo", etc. — ver AdminPage.tsx) aparecem aqui
-  // em até 3s. `enabled: !enviando` evita a resposta do poll pisar na
-  // resposta do próprio POST de reservar (ver alternarReserva abaixo).
+  // em até 10s (mais devagar que o Feed — ver comentário em
+  // useMeditacaoDashboard.ts sobre carga na hospedagem compartilhada).
+  // `enabled: !enviando` evita a resposta do poll pisar na resposta do
+  // próprio POST de reservar (ver alternarReserva abaixo).
   usePolling(async () => {
     const r = await meditacaoApi.proximoEncontro();
     setEncontro(r.encontro);
-  }, 3000, !enviando);
+  }, 10000, !enviando);
 
   if (!encontro) return null;
 
@@ -70,7 +72,9 @@ export function ProximoEncontro() {
       </div>
 
       <div className="cm-encontro-anfitriao">
-        <div className="cm-encontro-foto">{encontro.fotoAnfitriao ? <img src={encontro.fotoAnfitriao} alt="" /> : iniciais(encontro.anfitriao)}</div>
+        <div className="cm-encontro-foto">
+          <img src={encontro.fotoAnfitriao ?? "/perfil_live.png"} alt="" />
+        </div>
         <span>com {encontro.anfitriao}</span>
       </div>
 

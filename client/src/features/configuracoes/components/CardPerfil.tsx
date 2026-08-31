@@ -2,9 +2,12 @@ import { useRef, useState, type ChangeEvent } from "react";
 import type { Usuario } from "../../../shared/hooks/useAuth";
 import { configuracoesApi } from "../api/configuracoesApi";
 import { CropAvatarModal } from "./CropAvatarModal";
+import { CampoValidado } from "./CampoValidado";
 
 const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"];
 const TAMANHO_MAXIMO = 5 * 1024 * 1024;
+const NOME_MAX = 30;
+const PRIMEIRO_NOME_MAX = 14;
 
 function iniciais(nome: string) {
   return nome.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
@@ -47,16 +50,19 @@ export function CardPerfil({
     if (inputFoto.current) inputFoto.current.value = "";
   }
 
+  const nomeValido = nome.trim().length > 0 && nome.length <= NOME_MAX;
+  const primeiroNomeValido = primeiroNome.trim().length > 0 && primeiroNome.length <= PRIMEIRO_NOME_MAX;
+
   async function salvar() {
+    if (!nomeValido || !primeiroNomeValido) return;
     setSalvando(true);
     setMensagem(null);
     try {
-      const form = new FormData();
-      form.append("nome", nome.trim());
-      form.append("primeiroNome", primeiroNome.trim());
-      if (avatarPendente) form.append("foto", avatarPendente.blob, "avatar.jpg");
-
-      const r = await configuracoesApi.salvarPerfil(form);
+      const r = await configuracoesApi.salvarPerfil({
+        nome: nome.trim(),
+        primeiroNome: primeiroNome.trim(),
+        avatarBlob: avatarPendente?.blob ?? null,
+      });
       onAtualizado(r.usuario);
       setMensagem({ tipo: "sucesso", texto: "perfil atualizado" });
     } catch (e) {
@@ -87,24 +93,20 @@ export function CardPerfil({
         </div>
       </div>
 
-      <label className="cfg-campo">
-        <span>Nome completo</span>
-        <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" />
-      </label>
+      <CampoValidado label="Nome completo" value={nome} onChange={setNome} maxLength={NOME_MAX} placeholder="Nome completo" />
 
-      <label className="cfg-campo">
-        <span>Primeiro nome</span>
-        <input
-          value={primeiroNome}
-          onChange={(e) => setPrimeiroNome(e.target.value)}
-          placeholder="Como quer ser chamado(a)"
-        />
-      </label>
+      <CampoValidado
+        label="Primeiro nome"
+        value={primeiroNome}
+        onChange={setPrimeiroNome}
+        maxLength={PRIMEIRO_NOME_MAX}
+        placeholder="Como quer ser chamado(a)"
+      />
       <p className="cfg-campo-dica">É esse nome que aparece em "Olá, {primeiroNome || "…"}" na barra lateral.</p>
 
       {mensagem && <p className={`cfg-mensagem cfg-mensagem--${mensagem.tipo}`}>{mensagem.texto}</p>}
 
-      <button type="button" className="cfg-btn-primario" onClick={salvar} disabled={salvando || !nome.trim()}>
+      <button type="button" className="cfg-btn-primario" onClick={salvar} disabled={salvando || !nomeValido || !primeiroNomeValido}>
         {salvando ? "Salvando…" : "Salvar perfil"}
       </button>
 

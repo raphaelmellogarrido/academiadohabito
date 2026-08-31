@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require __DIR__ . '/_config.php';   // dá $mysqli + alunoParaUsuario()
 require __DIR__ . '/_sessao.php';   // dá iniciarSessao()
+garantirColunasPerfil($mysqli);     // colunas de avatar podem não existir ainda
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $email = strtolower(trim($input['email'] ?? ''));

@@ -19,7 +19,8 @@ export const communityRouter = Router();
 
 communityRouter.get("/meditacao/feed", requireAuth, (req, res) => {
   const usuario = (req as any).usuario;
-  res.json({ ok: true, posts: listarFeed(usuario) });
+  const cursor = typeof req.query.cursor === "string" ? req.query.cursor : null;
+  res.json({ ok: true, ...listarFeed(cursor, usuario) });
 });
 
 const HUMORES = ["calma", "agitada", "cansada", "foco"];

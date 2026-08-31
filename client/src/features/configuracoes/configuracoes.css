@@ -1,5 +1,6 @@
 .cfg-pagina {
   max-width: 920px;
+  margin: 0 auto;
 }
 
 .cfg-titulo {
@@ -58,28 +59,68 @@
   color: var(--cor-texto-suave);
 }
 
+/* A borda de validação (verde/vermelha) mora no label inteiro, não só no
+   input — por isso o label vira o "quadro" e o input fica sem borda própria. */
 .cfg-campo {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   margin-bottom: 12px;
+  padding: 7px 11px;
+  border: 1.5px solid var(--cor-borda);
+  border-radius: 10px;
   font-size: 12.5px;
   color: var(--cor-texto-suave);
   font-weight: 600;
+  transition: border-color 0.15s ease;
+}
+
+.cfg-campo--ok {
+  border-color: var(--cor-verde);
+}
+
+.cfg-campo--erro {
+  border-color: #b5514a;
+}
+
+/* Campo só-leitura (email) — sem validação, não é vermelho nem verde. */
+.cfg-campo--neutro {
+  background: var(--cor-creme);
+}
+
+.cfg-campo--neutro input {
+  background: transparent;
+}
+
+.cfg-campo-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cfg-campo-contador {
+  font-size: 10.5px;
+  font-weight: 700;
+  opacity: 0.7;
+  white-space: nowrap;
 }
 
 .cfg-campo input {
-  padding: 9px 11px;
-  border: 1px solid var(--cor-borda);
-  border-radius: 9px;
+  padding: 2px 0;
+  border: none;
   font-size: 14px;
   font-weight: 400;
   color: var(--cor-texto);
   font-family: inherit;
+  background: transparent;
+}
+
+.cfg-campo input:focus {
+  outline: none;
 }
 
 .cfg-campo input:disabled {
-  background: var(--cor-creme);
   color: var(--cor-texto-suave);
 }
 

@@ -5,11 +5,12 @@ import { usePolling } from "../../../shared/hooks/usePolling";
 export function DesafiosSemana() {
   const [desafios, setDesafios] = useState<Desafio[] | null>(null);
 
-  // Poll a cada 3s (consistência geral do dashboard).
+  // Poll a cada 10s (mais devagar que o Feed — ver comentário em
+  // useMeditacaoDashboard.ts sobre carga na hospedagem compartilhada).
   usePolling(async () => {
     const r = await meditacaoApi.desafios();
     setDesafios(r.desafios);
-  }, 3000);
+  }, 10000);
 
   async function alternar(id: string) {
     const r = await meditacaoApi.alternarDesafio(id);

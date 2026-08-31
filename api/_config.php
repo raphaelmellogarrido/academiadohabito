@@ -69,16 +69,46 @@ function exigirAdmin(string $email): void
 // isso vira o `id` aqui. `admin` reaproveita EMAILS_ORIENTADORES (mesma
 // lista já usada como "admin" em podeExcluir de feed/aula) — controla o
 // link "Admin" na TopBar e a permissão real dos endpoints -editar.php.
+// avatarUrl agora é real (ver garantirColunasPerfil abaixo): aponta pro
+// endpoint que serve o blob (avatar.php), com `v` = avatar_versao só pra
+// cache-busting (senão o browser mantém a foto antiga em cache na mesma URL).
 function alunoParaUsuario(array $aluno): array
 {
     $partes = explode(' ', trim($aluno['nome'] ?? ''));
     $primeiroNome = mb_substr($partes[0] ?? '', 0, 11);
+    $temAvatar = !empty($aluno['avatar_blob']);
     return [
         'id' => $aluno['email'],
         'email' => $aluno['email'],
         'nome' => $aluno['nome'] ?? '',
         'primeiroNome' => $aluno['apelido'] ?: $primeiroNome,
-        'avatarUrl' => null, // avatar real fica pra quando esse card entrar
+        'avatarUrl' => $temAvatar
+            ? '/api/avatar.php?e=' . urlencode($aluno['email']) . '&v=' . (int) ($aluno['avatar_versao'] ?? 0)
+            : null,
         'admin' => ehOrientadorEmail($aluno['email']),
     ];
+}
+
+// Self-provisioning (mesmo padrão de garantirTabelasEncontro em _encontro.php,
+// só que aqui é ALTER numa tabela que já existe em vez de CREATE TABLE IF NOT
+// EXISTS numa nova) — adiciona as colunas de Configurações -> Perfil
+// (avatar + limites de nome/apelido não têm coluna própria, só nome/apelido
+// mesmo) na primeira request depois do deploy, sem precisar mexer no
+// phpMyAdmin manualmente. Chamado por login.php/me.php (antes de ler
+// alunoParaUsuario) e por perfil-atualizar.php/avatar.php.
+function garantirColunasPerfil(mysqli $mysqli): void
+{
+    $existe = $mysqli->query(
+        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'alunos' AND COLUMN_NAME = 'avatar_blob'"
+    )->fetch_assoc();
+    if ($existe) {
+        return;
+    }
+    $mysqli->query(
+        "ALTER TABLE alunos
+         ADD COLUMN avatar_blob MEDIUMBLOB NULL,
+         ADD COLUMN avatar_mime VARCHAR(50) NULL,
+         ADD COLUMN avatar_versao INT NOT NULL DEFAULT 0"
+    );
 }
