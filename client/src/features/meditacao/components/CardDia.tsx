@@ -1,10 +1,11 @@
-import { Check, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import type { AulaProgressoArquivo, DiaAulas } from "../api/meditacaoApi";
 import type { ResultadoBloqueio } from "../lib/progressoDias";
 
 // Sidebar "vídeos do dia" — troca o antigo <select> puro de dias por um
 // dropdown de dia + lista dos vídeos daquele dia, com cadeado nos bloqueados
-// e bolinha de check nos concluídos, espelhando
+// e a bolinha de status como um checkbox de fato (marca/desmarca assistida
+// direto na lista, sem precisar abrir o vídeo), espelhando
 // renato_de_paula/src/pages/comunidade/AulasMeditacaoRaiz.jsx.
 export function CardDia({
   dias,
@@ -15,6 +16,7 @@ export function CardDia({
   diaMaximoLiberado,
   onSelecionarVideo,
   onTrocarDia,
+  onToggleConcluida,
 }: {
   dias: DiaAulas[];
   diaEfetivo: number;
@@ -24,6 +26,7 @@ export function CardDia({
   diaMaximoLiberado: number;
   onSelecionarVideo: (arquivo: string) => void;
   onTrocarDia: (dia: number) => void;
+  onToggleConcluida: (arquivo: string) => void;
 }) {
   const diaAtual = dias.find((d) => d.dia === diaEfetivo);
   if (!diaAtual) return null;
@@ -54,15 +57,20 @@ export function CardDia({
           const concluida = !!progressoPorArquivo[video.arquivo]?.assistida;
           const ativo = video.arquivo === videoAtivoArquivo;
           return (
-            <li key={video.arquivo}>
+            <li key={video.arquivo} className="cm-video-item-linha">
+              <input
+                type="checkbox"
+                className="cm-video-item-dot"
+                checked={concluida}
+                disabled={bloqueado}
+                onChange={() => onToggleConcluida(video.arquivo)}
+                aria-label={concluida ? "Aula assistida — clique para desmarcar" : "Marcar aula como assistida"}
+              />
               <button
                 type="button"
                 className={`cm-video-item ${ativo ? "is-ativo" : ""} ${bloqueado ? "is-bloqueado" : ""}`}
                 onClick={() => onSelecionarVideo(video.arquivo)}
               >
-                <span className={`cm-video-item-dot ${concluida ? "is-concluido" : ""}`}>
-                  {concluida && <Check size={9} className="cm-video-check is-concluido" />}
-                </span>
                 <span className="cm-video-item-titulo">{video.titulo}</span>
                 {bloqueado && <Lock size={11} className="cm-video-item-lock" />}
               </button>

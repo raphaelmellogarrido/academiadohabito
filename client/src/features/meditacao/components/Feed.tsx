@@ -1,16 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Bold, Italic, Smile, Image as ImageIcon } from "lucide-react";
-// Import só de tipos (apagado em tempo de compilação, não gera "import"
-// de verdade no bundle) — de propósito: importar EmojiStyle como valor
-// aqui criava uma segunda rota de import pro mesmo módulo que já é
-// lazy-loaded ali embaixo (lazy(() => import("emoji-picker-react"))),
-// e isso fazia o Vite jogar a lib inteira pro chunk principal no build
-// de produção. Efeito visual: os ícones de categoria (sprite CSS
-// gerado via classe injetada pela lib) ficavam invisíveis — a classe
-// certa, o clique funcionando, mas nenhum background-image aplicado —
-// porque a instância do módulo que injeta o <style> não batia mais com
-// a instância renderizada. "native" abaixo é o valor de EmojiStyle.NATIVE.
-import type { EmojiClickData, EmojiStyle } from "emoji-picker-react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { Bold, Italic, Image as ImageIcon } from "lucide-react";
 import { meditacaoApi, type Humor } from "../api/meditacaoApi";
 import { VisibilityToggle, type Visibilidade } from "./VisibilityToggle";
 import { ComentarioBloco } from "./ComentarioBloco";
@@ -25,11 +14,6 @@ const AJUDA_VISIBILIDADE: Record<Visibilidade, { icone: string; texto: string; t
 
 const LIMITE_TEXTO = 140;
 
-// Lazy: emoji-picker-react carrega junto a base inteira de emojis (~200KB
-// gzip) — não faz sentido pesar o carregamento inicial da página pra quem
-// nunca abre o picker. Só baixa no primeiro clique no botão de emoji.
-const EmojiPicker = lazy(() => import("emoji-picker-react"));
-
 const HUMORES: { valor: Humor; label: string }[] = [
   { valor: "calma", label: "Calma 😌" },
   { valor: "agitada", label: "Agitada 🌪️" },
@@ -43,11 +27,9 @@ export function Feed() {
   const [foto, setFoto] = useState<string | null>(null);
   const [visibilidade, setVisibilidade] = useState<Visibilidade>("publico");
   const [humor, setHumor] = useState<Humor>("calma");
-  const [emojiAberto, setEmojiAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const inputFoto = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const emojiRef = useRef<HTMLDivElement>(null);
   const sentinelaRef = useRef<HTMLDivElement>(null);
 
   // Scroll infinito: 20 posts por vez (mais recentes primeiro); observa a
@@ -61,33 +43,6 @@ export function Feed() {
     observer.observe(alvo);
     return () => observer.disconnect();
   }, [temMais, carregarMais]);
-
-  // Fecha o picker de emoji ao clicar fora dele.
-  useEffect(() => {
-    if (!emojiAberto) return;
-    function aoClicarFora(e: MouseEvent) {
-      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setEmojiAberto(false);
-    }
-    document.addEventListener("mousedown", aoClicarFora);
-    return () => document.removeEventListener("mousedown", aoClicarFora);
-  }, [emojiAberto]);
-
-  function inserirNoCursor(trecho: string) {
-    const el = textareaRef.current;
-    if (!el) {
-      setTexto((t) => (t + trecho).slice(0, LIMITE_TEXTO));
-      return;
-    }
-    const ini = el.selectionStart ?? texto.length;
-    const fim = el.selectionEnd ?? texto.length;
-    const novo = `${texto.slice(0, ini)}${trecho}${texto.slice(fim)}`.slice(0, LIMITE_TEXTO);
-    setTexto(novo);
-    requestAnimationFrame(() => {
-      el.focus();
-      const pos = ini + trecho.length;
-      el.setSelectionRange(pos, pos);
-    });
-  }
 
   function envolverSelecao(marcador: string) {
     const el = textareaRef.current;
@@ -181,33 +136,6 @@ export function Feed() {
           <button type="button" title="Itálico" onClick={() => envolverSelecao("_")}>
             <Italic size={15} />
           </button>
-          <div className="cm-composer-emoji-wrap" ref={emojiRef}>
-            <button type="button" title="Emoji" onClick={() => setEmojiAberto((v) => !v)}>
-              <Smile size={15} />
-            </button>
-            {emojiAberto && (
-              // Lib completa (emoji-picker-react) em vez da lista fixa de
-              // antes — busca + categorias, mesmo espírito do picker do
-              // WhatsApp (ver renato_de_paula/.../DificuldadeDoDia.jsx). Não
-              // fecha o popover ao escolher (mesmo comportamento de lá):
-              // deixa selecionar vários emojis seguidos, só fecha ao clicar
-              // fora (aoClicarFora acima). Width "100%" pro wrapper controlar
-              // o tamanho real — vira bottom sheet em telas de celular (ver
-              // .cm-emoji-picker-pop no CSS).
-              <div className="cm-emoji-picker-pop">
-                <Suspense fallback={null}>
-                  {/* emojiStyle="native": sem isso a lib busca cada emoji como
-                      imagem de um CDN externo (jsdelivr) — com centenas de
-                      requests em paralelo a grade fica praticamente em
-                      branco por vários segundos depois de abrir (bug
-                      reportado: "não dá pra ver nada"). Native usa a fonte
-                      de emoji do SO, renderiza na hora e não depende de
-                      rede. */}
-                  <EmojiPicker onEmojiClick={(dados: EmojiClickData) => inserirNoCursor(dados.emoji)} width="100%" height={360} previewConfig={{ showPreview: false }} emojiStyle={"native" as EmojiStyle} />
-                </Suspense>
-              </div>
-            )}
-          </div>
           <button type="button" title="Imagem" onClick={() => inputFoto.current?.click()}>
             <ImageIcon size={15} />
           </button>

@@ -21,7 +21,6 @@ export function AulasPage() {
   if (!aulas.diaAtual || !aulas.videoAtivo) return null;
 
   const video = aulas.videoAtivo;
-  const concluida = !!aulas.progressoPorArquivo[video.arquivo]?.assistida;
 
   return (
     <div className="cm-aulas">
@@ -41,9 +40,6 @@ export function AulasPage() {
         <VideoAula
           dia={aulas.diaAtual.dia}
           video={video}
-          concluida={concluida}
-          bloqueada={!!aulas.bloqueioVideoAtivo && !aulas.bloqueioVideoAtivo.liberado}
-          onToggleConcluida={() => aulas.toggleConcluida(video.arquivo)}
           onTimeUpdate={aulas.handleTimeUpdatePlayer}
           onEnded={aulas.irParaProximoVideo}
         />
@@ -60,6 +56,7 @@ export function AulasPage() {
           diaMaximoLiberado={aulas.diaMaximoLiberado}
           onSelecionarVideo={aulas.selecionarVideo}
           onTrocarDia={aulas.handleTrocarDia}
+          onToggleConcluida={aulas.toggleConcluida}
         />
         <JornadaAulas
           totalConcluidos={aulas.totalConcluidos}

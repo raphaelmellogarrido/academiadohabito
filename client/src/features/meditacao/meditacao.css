@@ -33,7 +33,12 @@
 
 @media (max-width: 1180px) {
   .cm-dashboard {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr), não só 1fr: uma track "1fr" sozinha tem mínimo
+       implícito "auto" (max-content dos filhos) — com post do feed sem
+       quebra a coluna cresce pra caber o conteúdo em vez de encolher pro
+       viewport, e o .cm-conteudo (overflow-x:auto) vira scroll horizontal
+       silencioso no celular inteiro. minmax(0, 1fr) força o encolhimento. */
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
 
@@ -55,6 +60,24 @@
   }
 
   .cm-col-encontros {
+    order: 2;
+    /* display:contents tira a própria caixa da coluna do fluxo (ela deixa
+       de existir como item de grid) e "promove" os filhos dela a itens
+       diretos de .cm-dashboard — só assim o botão "Meditei hoje", que vive
+       dentro dessa coluna, pode ganhar uma order independente do resto da
+       coluna (ver regra abaixo). */
+    display: contents;
+  }
+
+  /* Pedido: no celular o CTA "Meditei hoje" aparece primeiro, antes de
+     tudo (inclusive da sequência/jornada) — é a ação que importa antes do
+     usuário rolar a tela. Os outros cards da coluna de encontros mantêm a
+     posição de antes (depois da sequência/jornada, antes do feed). */
+  .cm-btn-mediteihoje {
+    order: 0;
+  }
+
+  .cm-col-encontros > *:not(.cm-btn-mediteihoje) {
     order: 2;
   }
 
@@ -310,7 +333,7 @@
 
 .cm-meditando-junto {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -724,29 +747,6 @@
   background: var(--cor-creme);
 }
 
-.cm-composer-emoji-wrap {
-  position: relative;
-}
-
-/* Popover do emoji-picker-react (ver Feed.tsx) — no desktop fica ancorado
-   sob o botão, largura fixa; width="100%" passado ao componente faz a lib
-   preencher esse wrapper (ver .EmojiPickerReact, root da lib, pra qualquer
-   ajuste de cor/borda). Em telas de celular vira bottom sheet (ver
-   breakpoint 640px abaixo) — um popover de ~320px de largura ancorado em
-   position:absolute estouraria a viewport em telas de 320-375px. */
-.cm-emoji-picker-pop {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 5;
-  width: 320px;
-}
-
-.cm-emoji-picker-pop .EmojiPickerReact {
-  box-shadow: var(--sombra);
-  border-radius: 10px !important;
-}
-
 .cm-composer-textarea-wrap {
   position: relative;
   background: var(--cor-creme);
@@ -1136,7 +1136,9 @@
 /* Aulas */
 .cm-aulas {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  /* Coluna lateral (Dia + Jornada) com metade da largura que tinha antes
+     (era 1.6fr/1fr ≈ 38,5% da grade; 4.2fr/1fr ≈ 19,2%, a metade). */
+  grid-template-columns: minmax(0, 4.2fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -1150,14 +1152,13 @@
 
 @media (max-width: 1180px) {
   .cm-aulas {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /* Breakpoint de celular (mais apertado que os 1180px/860px de tablet acima)
    — ajustes finos que só fazem falta em telas de 320-640px: cartões densos
-   demais, grid de 3 colunas apertando texto, popover de emoji que precisa
-   virar bottom sheet. */
+   demais, grid de 3 colunas apertando texto. */
 @media (max-width: 640px) {
   .cm-composer-pergunta {
     font-size: 16.5px;
@@ -1175,7 +1176,27 @@
      não cabem em 3 colunas iguais numa tela de celular sem quebrar feio —
      2 colunas, o 3º item desce pra linha de baixo. */
   .cm-meditando-junto {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  /* No desktop, toggle de visibilidade (3 opções, "Orientador" é a mais
+     longa) + botão "Compartilhar" cabem lado a lado numa linha só. Num
+     celular estreito não cabe: o toggle força a linha a estourar o
+     .cm-conteudo (que tem overflow-x:auto, então virava scroll horizontal
+     silencioso em vez de quebra visível). Quebra em duas linhas: toggle
+     ocupa a largura toda, botão desce e fica alinhado à direita. */
+  .cm-feed-composer-rodape {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .cm-visibility-toggle {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .cm-btn-compartilhar {
+    margin-left: auto;
   }
 
   .cm-jornada-anel {
@@ -1187,51 +1208,10 @@
     width: 88px;
     height: 88px;
   }
-
-  /* Bottom sheet: um popover ancorado de ~320px de largura estouraria a
-     viewport nessas telas — vira uma folha fixa na base da tela, largura
-     cheia (a lib recebe width="100%" no componente, ver Feed.tsx). */
-  .cm-emoji-picker-pop {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    width: 100%;
-    z-index: 60;
-  }
-
-  .cm-emoji-picker-pop .EmojiPickerReact {
-    border-radius: 14px 14px 0 0 !important;
-  }
 }
 
 .cm-video-cabecalho {
   margin-bottom: 14px;
-}
-
-.cm-video-check-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.cm-video-check-label.is-bloqueada {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.cm-video-checkbox {
-  flex-shrink: 0;
-  width: 19px;
-  height: 19px;
-  accent-color: var(--cor-verde);
-  cursor: pointer;
-}
-
-.cm-video-checkbox:disabled {
-  cursor: not-allowed;
 }
 
 .cm-video-player {
@@ -1323,49 +1303,6 @@
 .cm-jornada-status--concluido {
   color: var(--cor-verde);
   font-weight: 600;
-}
-
-.cm-comentarios-composer textarea {
-  width: 100%;
-  min-height: 50px;
-  border: none;
-  resize: none;
-  font-family: inherit;
-  font-size: 14px;
-  outline: none;
-}
-
-.cm-comentarios-composer-rodape {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--cor-borda);
-}
-
-.cm-comentarios-composer-rodape button {
-  border: none;
-  background: var(--cor-roxo);
-  color: #fff;
-  padding: 8px 18px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.cm-comentarios-composer-rodape button:disabled {
-  opacity: 0.5;
-}
-
-.cm-comentarios-lista {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .cm-badge-admin {
@@ -1501,8 +1438,15 @@
   gap: 3px;
 }
 
+.cm-video-item-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .cm-video-item {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1531,25 +1475,42 @@
   cursor: not-allowed;
 }
 
+/* Bolinha "assistida" — checkbox de verdade (appearance:none) desenhado pra
+   continuar parecendo o mesmo indicador redondo de antes, só que clicável. */
 .cm-video-item-dot {
+  appearance: none;
+  -webkit-appearance: none;
   flex-shrink: 0;
+  margin: 0;
   width: 14px;
   height: 14px;
   border-radius: 999px;
   border: 1.5px solid var(--cor-borda);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: #fff;
+  position: relative;
+  cursor: pointer;
 }
 
-.cm-video-item-dot.is-concluido {
+.cm-video-item-dot:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.cm-video-item-dot:checked {
   background: var(--cor-verde);
   border-color: var(--cor-verde);
-  color: #fff;
 }
 
-.cm-video-check {
-  display: block;
+.cm-video-item-dot:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1.5px;
+  width: 3.5px;
+  height: 6.5px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 
 .cm-video-item-titulo {

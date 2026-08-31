@@ -15,6 +15,19 @@ function formatarDataHora(iso: string): string {
   return `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${d.getFullYear()} às ${dois(d.getHours())}:${dois(d.getMinutes())}`;
 }
 
+// Interpreta os marcadores **negrito** e _itálico_ inseridos pela toolbar do
+// composer (Feed.tsx/ComentariosAulas.tsx) — sem lib de markdown, só o
+// suficiente pra esses dois casos. Não aninha (um **_texto_** não vira
+// negrito+itálico ao mesmo tempo), o que basta pro que a toolbar produz.
+function renderizarTexto(texto: string): ReactNode[] {
+  const partes = texto.split(/(\*\*[^*]+\*\*|_[^_]+_)/g);
+  return partes.map((parte, i) => {
+    if (parte.startsWith("**") && parte.endsWith("**")) return <strong key={i}>{parte.slice(2, -2)}</strong>;
+    if (parte.startsWith("_") && parte.endsWith("_")) return <em key={i}>{parte.slice(1, -1)}</em>;
+    return parte;
+  });
+}
+
 // Achata a árvore de respostas (resposta de resposta, em qualquer
 // profundidade) numa lista única em ordem cronológica. Responder a uma
 // resposta continua criando um nó aninhado no servidor (a hierarquia real
@@ -164,7 +177,7 @@ export function ComentarioBloco({
           </button>
         </div>
       ) : (
-        <p className="cm-post-texto">{no.texto}</p>
+        <p className="cm-post-texto">{renderizarTexto(no.texto)}</p>
       )}
       {no.foto && <FotoAnexo src={no.foto} />}
 
